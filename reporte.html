@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Calidad — RMNC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8; --card:#ffffff; --text:#1a1a1a; --text-sub:#666; --text-mut:#999;
+  --border:#e0e8f0; --header:#1a4a8a; --filterbg:#e8f0fb; --filterborder:#c5d8f0;
+  --grid:#e1e0d9; --kpibg:#f7faff;
+}
+[data-theme="dark"]{
+  --bg:#0f172a; --card:#1e293b; --text:#e8edf4; --text-sub:#a8b3c4; --text-mut:#7c8aa0;
+  --border:#334155; --header:#15355e; --filterbg:#16243d; --filterborder:#2c4870;
+  --grid:#334155; --kpibg:#16243d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-width:0;overflow-x:hidden;transition:background .2s,color .2s}
+.header{background:var(--header);color:white;padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:200}
+.header h1{font-size:18px;font-weight:500}
+.updated{font-size:12px;opacity:.75}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.search-box{display:flex;gap:6px;align-items:center}
+.search-box input{font-size:13px;padding:6px 10px;border-radius:6px;border:none;width:130px}
+.search-box button{padding:6px 12px;font-size:13px;border-radius:6px;border:none;background:white;color:var(--header);cursor:pointer;font-weight:600}
+.theme-toggle{background:rgba(255,255,255,.15);border:none;color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+.filters{background:var(--filterbg);border-bottom:1px solid var(--filterborder);padding:12px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;position:sticky;top:52px;z-index:100}
+.fg{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fg label{font-size:10px;color:var(--header);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+[data-theme="dark"] .fg label{color:#7fb0e8}
+.fg select{font-size:12px;padding:5px 8px;border:1px solid var(--filterborder);border-radius:6px;background:var(--card);color:var(--text);min-width:110px;max-width:160px}
+.btn{padding:5px 14px;font-size:12px;border:1px solid var(--header);border-radius:6px;background:var(--card);color:var(--header);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--header);color:white}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border)}
+.kpi{background:var(--kpibg);border-radius:8px;padding:12px 16px;border-left:4px solid var(--header)}
+.kpi.ace{border-left-color:#1baf7a}
+.kpi.rec{border-left-color:#e34948}
+.kpi.dev{border-left-color:#eda100}
+.kpi-label{font-size:10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kpi-value{font-size:22px;font-weight:600;color:var(--text)}
+.kpi-sub{font-size:10px;color:var(--text-mut);margin-top:2px}
+.charts-wrap{padding:16px 24px;display:grid;gap:14px}
+.row-half{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;min-width:0}
+.card-title{font-size:13px;font-weight:600;color:var(--header);margin-bottom:8px}
+[data-theme="dark"] .card-title{color:#7fb0e8}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--text-sub);margin-bottom:8px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:4px}
+.sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="header">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+  <h1>Reporte de calidad — RMNC</h1>
+  <div class="header-right">
+    <span class="updated">Actualizado: 13/Jul/2026 10:38</span>
+    <div class="search-box">
+      <input type="text" id="buscar-folio" placeholder="Buscar folio..." onkeypress="if(event.key==='Enter')buscarFolio()">
+      <button onclick="buscarFolio()">Buscar</button>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="fg"><label>Año</label>
+    <select id="f-anio" onchange="aplicar()"><option value="">Todos</option><option value="2026">2026</option></select></div>
+  <div class="fg"><label>Mes</label>
+    <select id="f-mes" onchange="aplicar()"><option value="">Todos</option>
+    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+    </select></div>
+  <div class="fg"><label>Departamento</label>
+    <select id="f-dep" onchange="onDepChange()"><option value="">Todos</option><option value="EXTRUSIÓN">EXTRUSIÓN</option><option value="IMPRESIÓN">IMPRESIÓN</option><option value="INNOVACION">INNOVACION</option><option value="PROGRAMACIÓN">PROGRAMACIÓN</option></select></div>
+  <div class="fg"><label>Cliente</label>
+    <select id="f-cliente" onchange="aplicar()"><option value="">Todos</option><option value="3072312 CANADA INC">3072312 CANADA INC</option><option value="DESARROLLO DE ENGORDAS ESTABULADAS">DESARROLLO DE ENGORDAS ESTABULADAS</option><option value="EMBUTIDOS CORONA">EMBUTIDOS CORONA</option><option value="EMPACADORA CELAYA">EMPACADORA CELAYA</option><option value="INTERFOODS AGROINDUSTRIAS">INTERFOODS AGROINDUSTRIAS</option><option value="MAW MEXICANA">MAW MEXICANA</option><option value="NABEL SRL">NABEL SRL</option><option value="PRODUCTOS LACTEOS LA LAJA">PRODUCTOS LACTEOS LA LAJA</option><option value="QUALTIA ALIMENTOS OPERACIONES">QUALTIA ALIMENTOS OPERACIONES</option><option value="SIGMA ALIMENTOS NORESTE">SIGMA ALIMENTOS NORESTE</option><option value="ZUBEX USA LLC">ZUBEX USA LLC</option></select></div>
+  <div class="fg"><label>Coordinador</label>
+    <select id="f-coord" onchange="aplicar()"><option value="">Todos</option><option value="ALEJANDRO ANDRADE">ALEJANDRO ANDRADE</option><option value="ANDRADE">ANDRADE</option><option value="ANDRADE ARIAS JESUS ALEJANDRO">ANDRADE ARIAS JESUS ALEJANDRO</option><option value="ANDRAE">ANDRAE</option><option value="GONZALEZ GONZALEZ EDUARDO">GONZALEZ GONZALEZ EDUARDO</option><option value="GONZALEZ GURROLA JOSÉ JOAQUIN">GONZALEZ GURROLA JOSÉ JOAQUIN</option><option value="MORENO BADILLO JUAN HUMBERTO">MORENO BADILLO JUAN HUMBERTO</option><option value="PRESAS JASSO ERICK RODRIGO">PRESAS JASSO ERICK RODRIGO</option><option value="RODRIGUEZ HERRERA ISRAEL">RODRIGUEZ HERRERA ISRAEL</option><option value="S/INF">S/INF</option><option value="VALADEZ LOPEZ JOSE JUAN">VALADEZ LOPEZ JOSE JUAN</option></select></div>
+  <div class="fg"><label>Operador</label>
+    <select id="f-op" onchange="aplicar()"><option value="">Todos</option><option value="BALDERAS NIÑO JOSE FRANCISCO">BALDERAS NIÑO JOSE FRANCISCO</option><option value="BERMEA LÓPEZ EDUARDO">BERMEA LÓPEZ EDUARDO</option><option value="CRUZ HERNANDEZ JUAN ANGEL">CRUZ HERNANDEZ JUAN ANGEL</option><option value="DOMINGUEZ ULLOA MARTIN JOVANI">DOMINGUEZ ULLOA MARTIN JOVANI</option><option value="EJEMPLO">EJEMPLO</option><option value="ESQUIVEL SALAS MANUEL ALEJANDRO">ESQUIVEL SALAS MANUEL ALEJANDRO</option><option value="GARCIA GALVAN VICTOR">GARCIA GALVAN VICTOR</option><option value="GARCIA OCHOA JUAN FRANCISCO">GARCIA OCHOA JUAN FRANCISCO</option><option value="GARZA HERNANDEZ FRANCISCO ABELARDO">GARZA HERNANDEZ FRANCISCO ABELARDO</option><option value="GAYTAN RODRIGUEZ JOSUE RODOLFO">GAYTAN RODRIGUEZ JOSUE RODOLFO</option><option value="GOMEZ HERRERA JOSÉ ORLANDO">GOMEZ HERRERA JOSÉ ORLANDO</option><option value="JUAN">JUAN</option><option value="JUAN G">JUAN G</option><option value="JUAN GARCIA">JUAN GARCIA</option><option value="LOPEZ PEREZ BERSAIN">LOPEZ PEREZ BERSAIN</option><option value="LUIS">LUIS</option><option value="LUIS MARTINEZ">LUIS MARTINEZ</option><option value="LUIS VILLEGAS">LUIS VILLEGAS</option><option value="MALDONADO DURAN OZIEL EMMANUEL">MALDONADO DURAN OZIEL EMMANUEL</option><option value="MARTINEZ OCHOA BRANDON GILBERTO">MARTINEZ OCHOA BRANDON GILBERTO</option><option value="ORLANDO">ORLANDO</option><option value="PALOMO NOROÑA JAVIER">PALOMO NOROÑA JAVIER</option><option value="PRESAS JASSO FELIPE CONCEPCION">PRESAS JASSO FELIPE CONCEPCION</option><option value="SANCHEZ GONZALEZ BRANDON IMANOL">SANCHEZ GONZALEZ BRANDON IMANOL</option><option value="VILLEGAS MARTINEZ LUIS ALBERTO">VILLEGAS MARTINEZ LUIS ALBERTO</option><option value="ZUÑIGA RAMIREZ LUIS ELOY">ZUÑIGA RAMIREZ LUIS ELOY</option></select></div>
+  <div class="fg"><label>Tipo desviación</label>
+    <select id="f-dev" onchange="aplicar()"><option value="">Todos</option><option value="ANCHO PLANO FUERA DE ESPECIFICACION/">ANCHO PLANO FUERA DE ESPECIFICACION/</option><option value="ARRUGAS/">ARRUGAS/</option><option value="DESPRENDIMIENTO DE TINTA/">DESPRENDIMIENTO DE TINTA/</option><option value="DIFERENCIA DE TONALIDAD/">DIFERENCIA DE TONALIDAD/</option><option value="ENCOGIMIENTO FUERA DE ESPECIFICACION/">ENCOGIMIENTO FUERA DE ESPECIFICACION/</option><option value="FANTASMEO/">FANTASMEO/</option><option value="MAL EMBOBINDO/">MAL EMBOBINDO/</option><option value="MANCHAS EN EL CANTO/">MANCHAS EN EL CANTO/</option><option value="MANCHAS/">MANCHAS/</option><option value="OLANUDA/">OLANUDA/</option><option value="PLASTA BCA TENUE/">PLASTA BCA TENUE/</option><option value="REPINTE/">REPINTE/</option><option value="Repinte">Repinte</option></select></div>
+  <button class="btn" onclick="reset()">Limpiar filtros</button>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-label">Kilos detenidos</div><div class="kpi-value" id="kpi-det">4,742.33</div><div class="kpi-sub">Total acumulado</div></div>
+  <div class="kpi ace"><div class="kpi-label">Kilos aceptados</div><div class="kpi-value" id="kpi-ace">60.00</div><div class="kpi-sub" id="sub-ace">1.3% del detenido</div></div>
+  <div class="kpi rec"><div class="kpi-label">Kilos rechazados</div><div class="kpi-value" id="kpi-rec">96.13</div><div class="kpi-sub" id="sub-rec">2.0% del detenido</div></div>
+  <div class="kpi dev"><div class="kpi-label">Folios totales</div><div class="kpi-value" id="kpi-folios">49</div><div class="kpi-sub">Folios registrados</div></div>
+</div>
+
+<div class="charts-wrap">
+  <div class="card">
+    <div class="card-title">Kilos detenidos, aceptados y rechazados por mes</div>
+    <div class="legend">
+      <span><span class="sq" style="background:#2a78d6"></span>Detenidos</span>
+      <span><span class="sq" style="background:#1baf7a"></span>Aceptados</span>
+      <span><span class="sq" style="background:#e34948"></span>Rechazados</span>
+    </div>
+    <div style="position:relative;width:100%;height:240px;"><canvas id="cKilos" role="img" aria-label="Kilos por mes">Kilos por mes.</canvas></div>
+  </div>
+
+  <div class="row-half">
+    <div class="card" id="card-tipo">
+      <div class="card-title">Kilos detenidos por tipo de desviación</div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cTipo" role="img" aria-label="Kilos por tipo de desviacion">Kilos por tipo.</canvas></div>
+    </div>
+    <div class="card" id="card-dep">
+      <div class="card-title" id="title-dep">Kilos detenidos por departamento</div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cDep" role="img" aria-label="Kilos por departamento">Kilos por departamento.</canvas></div>
+    </div>
+  </div>
+
+  <div class="row-half">
+    <div class="card">
+      <div class="card-title">Kilos detenidos por operador (top 10)</div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cOp" role="img" aria-label="Kilos por operador">Kilos por operador.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Kilos detenidos por descripción de producto (top 10)</div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cDesc" role="img" aria-label="Kilos por descripcion">Kilos por descripcion.</canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
+let D = null;
+let MES_ACTUAL = "";
+let ANIO_ACTUAL = "";
+
+function gridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(); }
+function textColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--text-sub').trim(); }
+
+function truncar(s, n){ s=String(s); return s.length>n ? s.slice(0,n)+"…" : s; }
+
+function colorConOpacidad(baseColor, fullLabels, valorFiltroActual){
+  if(!valorFiltroActual) return fullLabels.map(()=>baseColor);
+  return fullLabels.map(l => l===valorFiltroActual ? baseColor : baseColor+"4D");
+}
+
+function barH(id, fullLabels, dataValues, baseColor, onClickFn, valorFiltroActual){
+  const c=document.getElementById(id);
+  if(c._ch)c._ch.destroy();
+  const shortLabels = fullLabels.map(l=>truncar(l,18));
+  const colores = colorConOpacidad(baseColor, fullLabels, valorFiltroActual);
+  Chart.defaults.font.family="Arial";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color=textColor();
+  c._ch=new Chart(c,{
+    type:"bar",
+    data:{labels:shortLabels, datasets:[{data:dataValues, backgroundColor:colores, borderRadius:4}]},
+    options:{
+      indexAxis:"y",
+      responsive:true, maintainAspectRatio:false,
+      onClick:(evt, elements)=>{
+        if(elements.length>0 && onClickFn){
+          const idx=elements[0].index;
+          onClickFn(fullLabels[idx]);
+        }
+      },
+      onHover:(evt, elements)=>{ evt.native.target.style.cursor = elements.length>0 ? "pointer" : "default"; },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{title:(items)=>fullLabels[items[0].dataIndex]}}
+      },
+      scales:{
+        x:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX")}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+function bar(id,labels,dataValues,baseColor,onClickFn,valorFiltroActual){
+  const c=document.getElementById(id);
+  if(c._ch)c._ch.destroy();
+  const colores = colorConOpacidad(baseColor, labels, valorFiltroActual);
+  Chart.defaults.font.family="Arial";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color=textColor();
+  c._ch=new Chart(c,{type:"bar",data:{labels,datasets:[{data:dataValues,backgroundColor:colores,borderRadius:4}]},options:{
+    responsive:true, maintainAspectRatio:false,
+    onClick:(evt, elements)=>{
+      if(elements.length>0 && onClickFn){
+        const idx=elements[0].index;
+        onClickFn(labels[idx]);
+      }
+    },
+    onHover:(evt, elements)=>{ evt.native.target.style.cursor = elements.length>0 ? "pointer" : "default"; },
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},
+      y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}
+    }
+  }});
+}
+
+function barSimple(id,labels,datasets){
+  const c=document.getElementById(id);
+  if(c._ch)c._ch.destroy();
+  Chart.defaults.font.family="Arial";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color=textColor();
+  c._ch=new Chart(c,{type:"bar",data:{labels,datasets},options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},
+      y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}
+    }
+  }});
+}
+
+function fillSelect(id, valores, valorActual){
+  const sel=document.getElementById(id);
+  const prev=valorActual!==undefined?valorActual:sel.value;
+  sel.innerHTML='<option value="">Todos</option>';
+  valores.forEach(v=>{
+    const o=document.createElement("option");
+    o.value=v; o.textContent=v;
+    if(v===prev)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function onDepChange(){
+  const dep=document.getElementById("f-dep").value;
+  window._lineaSeleccionada = null;
+  if(dep){
+    fillSelect("f-op",      D.depOps[dep]      || [], "");
+    fillSelect("f-coord",   D.depCoords[dep]   || [], "");
+    fillSelect("f-cliente", D.depClientes[dep] || [], "");
+    fillSelect("f-dev",     D.depDevs[dep]     || [], "");
+  } else {
+    fillSelect("f-op",      D.allOps, "");
+    fillSelect("f-coord",   D.allCoords, "");
+    fillSelect("f-cliente", D.allClientes, "");
+    fillSelect("f-dev",     D.allDevs, "");
+  }
+  aplicar();
+}
+
+function aplicar(){
+  const anio=document.getElementById("f-anio").value;
+  const mes=document.getElementById("f-mes").value;
+  const cliente=document.getElementById("f-cliente").value;
+  const dep=document.getElementById("f-dep").value;
+  const coord=document.getElementById("f-coord").value;
+  const op=document.getElementById("f-op").value;
+  const dev=document.getElementById("f-dev").value;
+
+  let b=[...D.base];
+  let fd=[...D.fallasData];
+  let dd=[...D.datosData];
+
+  if(anio){b=b.filter(r=>r.Anio===anio);fd=fd.filter(r=>r.Anio===anio);dd=dd.filter(r=>r.Anio===anio);}
+  if(mes){b=b.filter(r=>r.Mes===mes);fd=fd.filter(r=>r.Mes===mes);dd=dd.filter(r=>r.Mes===mes);}
+  if(cliente){b=b.filter(r=>r.Cliente===cliente);fd=fd.filter(r=>r.Cliente===cliente);dd=dd.filter(r=>r.Cliente===cliente);}
+  if(dep){b=b.filter(r=>r.DepResponsable===dep);fd=fd.filter(r=>r.DepResponsable===dep);dd=dd.filter(r=>r.DepResponsable===dep);}
+  if(coord){b=b.filter(r=>r.CoordDatos===coord);fd=fd.filter(r=>r.CoordDatos===coord);}
+  if(op){b=b.filter(r=>r.OpDatos===op);fd=fd.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
+  if(dev){b=b.filter(r=>r.Desviacion===dev);fd=fd.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
+  if(dep && window._lineaSeleccionada){
+    b=b.filter(r=>r.Linea===window._lineaSeleccionada);
+    fd=fd.filter(r=>r.Linea===window._lineaSeleccionada);
+    dd=dd.filter(r=>r.Linea===window._lineaSeleccionada);
+  }
+
+  // Kilos por mes (de RESPUESTAS: CantDetenido, Aceptado, Scrap)
+  const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
+  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
+    det[m]+=parseFloat(r.CantDetenido)||0;
+    ace[m]+=parseFloat(r.Aceptado)||0;
+    rec[m]+=parseFloat(r.Scrap)||0;
+  }});
+  barSimple("cKilos",MESES,[
+    {label:"Detenidos",data:det.map(v=>+v.toFixed(2)),backgroundColor:"#2a78d6",borderRadius:4},
+    {label:"Aceptados",data:ace.map(v=>+v.toFixed(2)),backgroundColor:"#1baf7a",borderRadius:4},
+    {label:"Rechazados",data:rec.map(v=>+v.toFixed(2)),backgroundColor:"#e34948",borderRadius:4}
+  ]);
+
+  // Kilos por tipo desviacion (de FALLAS): oculta si hay filtro de tipo
+  const cardTipo=document.getElementById("card-tipo");
+  if(dev){
+    cardTipo.style.display="none";
+  } else {
+    cardTipo.style.display="";
+    const ct={};fd.forEach(r=>{
+      const k=(parseFloat(r["Kilos Aceptados"])||0)+(parseFloat(r["Kilos Rechazados"])||0);
+      if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+k;
+    });
+    const ts=Object.entries(ct).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cTipo", ts.map(x=>x[0]), ts.map(x=>+x[1].toFixed(2)), "#2a78d6",
+      (valor)=>{ document.getElementById("f-dev").value=valor; aplicar(); },
+      dev
+    );
+  }
+
+  // Kilos por dep vs linea: si hay dep seleccionado, muestra linea y oculta dep
+  const titleDep=document.getElementById("title-dep");
+  if(dep){
+    titleDep.textContent="Kilos detenidos por línea — "+dep;
+    const cl={};b.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
+    const ls=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    bar("cDep", ls.map(x=>x[0]), ls.map(x=>+x[1].toFixed(2)), "#eda100",
+      (valor)=>{ window._lineaSeleccionada = (window._lineaSeleccionada===valor) ? null : valor; aplicar(); },
+      window._lineaSeleccionada
+    );
+  } else {
+    window._lineaSeleccionada = null;
+    titleDep.textContent="Kilos detenidos por departamento";
+    const cd={};b.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
+    const ds=Object.entries(cd).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    bar("cDep", ds.map(x=>x[0]), ds.map(x=>+x[1].toFixed(2)), "#1a4a8a",
+      (valor)=>{ document.getElementById("f-dep").value=valor; onDepChange(); },
+      dep
+    );
+  }
+
+  // Kilos por operador (de DATOS) top 10
+  const co={};dd.forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
+  const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  barH("cOp", os.map(x=>x[0]), os.map(x=>+x[1].toFixed(2)), "#4a3aa7",
+    (valor)=>{ document.getElementById("f-op").value=valor; aplicar(); },
+    op
+  );
+
+  // Kilos por descripcion (de RESPUESTAS/base) top 10 — no es un filtro disponible, solo informativo (sin clic)
+  const cd2={};b.forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
+  const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  barH("cDesc", ds2.map(x=>x[0]), ds2.map(x=>+x[1].toFixed(2)), "#0e7490", null, null);
+
+  // KPIs
+  const tDet=det.reduce((a,b)=>a+b,0),tAce=ace.reduce((a,b)=>a+b,0),tRec=rec.reduce((a,b)=>a+b,0);
+  const fmt=v=>v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("kpi-det").textContent=fmt(tDet);
+  document.getElementById("kpi-ace").textContent=fmt(tAce);
+  document.getElementById("kpi-rec").textContent=fmt(tRec);
+  document.getElementById("sub-ace").textContent=(tDet>0?(tAce/tDet*100).toFixed(1):0)+"% del detenido";
+  document.getElementById("sub-rec").textContent=(tDet>0?(tRec/tDet*100).toFixed(1):0)+"% del detenido";
+  const foliosUnicos=new Set(b.map(r=>r.Folio)).size;
+  document.getElementById("kpi-folios").textContent=foliosUnicos;
+}
+
+function reset(){
+  window._lineaSeleccionada = null;
+  ["f-anio","f-mes","f-cliente","f-dep","f-coord","f-op","f-dev"]
+    .forEach(id=>document.getElementById(id).selectedIndex=0);
+  fillSelect("f-op", D.allOps, "");
+  fillSelect("f-coord", D.allCoords, "");
+  fillSelect("f-cliente", D.allClientes, "");
+  fillSelect("f-dev", D.allDevs, "");
+  const selAnio=document.getElementById("f-anio");
+  const selMes=document.getElementById("f-mes");
+  for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
+  for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
+  aplicar();
+}
+
+function buscarFolio(){
+  const folio=document.getElementById("buscar-folio").value.trim();
+  if(folio){
+    window.location.href="detalle.html?folio="+encodeURIComponent(folio);
+  }
+}
+
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute("data-theme")==="dark";
+  html.setAttribute("data-theme", isDark?"light":"dark");
+  localStorage.setItem("rmnc-theme", isDark?"light":"dark");
+  document.getElementById("theme-btn").textContent = isDark? "Modo oscuro" : "Modo claro";
+  aplicar();
+}
+
+(function(){
+  const saved=localStorage.getItem("rmnc-theme");
+  if(saved==="dark"){
+    document.documentElement.setAttribute("data-theme","dark");
+  }
+})();
+
+window.onload=async function(){
+  if(localStorage.getItem("rmnc-theme")==="dark"){
+    document.getElementById("theme-btn").textContent="Modo claro";
+  }
+
+  // Cargar datos desde JSON
+  try {
+    const resp = await fetch(JSON_URL + "?t=" + Date.now());
+    D = await resp.json();
+    MES_ACTUAL  = D.mesActual  || "";
+    ANIO_ACTUAL = D.anioActual || "";
+
+    // Rellenar filtros con opciones del JSON
+    function fillOpts(id, lista){
+      const sel=document.getElementById(id);
+      const cur=sel.value;
+      const first=sel.options[0].outerHTML;
+      sel.innerHTML=first;
+      lista.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});
+    }
+    fillOpts("f-anio",   D.filtros.anios);
+    fillOpts("f-dep",    D.filtros.deps);
+    fillOpts("f-dev",    D.filtros.devs);
+    fillOpts("f-cliente",D.filtros.clientes);
+    fillOpts("f-coord",  D.filtros.coords);
+    fillOpts("f-op",     D.filtros.ops);
+
+    // Poner año en curso
+    const selAnio=document.getElementById("f-anio");
+    for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
+
+    aplicar();
+
+  } catch(e) {
+    console.error("Error cargando datos:", e);
+    document.body.innerHTML += '<div style="color:red;padding:20px;font-size:14px;">Error al cargar datos.json. Verifica que el archivo exista en el repositorio.</div>';
+  }
+};
+</script>
+</body></html>
