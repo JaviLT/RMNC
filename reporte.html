@@ -301,8 +301,9 @@ function aplicar(){
   if(mes){b=b.filter(r=>r.Mes===mes);fd=fd.filter(r=>r.Mes===mes);dd=dd.filter(r=>r.Mes===mes);}
   if(cliente){b=b.filter(r=>r.Cliente===cliente);fd=fd.filter(r=>r.Cliente===cliente);dd=dd.filter(r=>r.Cliente===cliente);}
   if(familia){b=b.filter(r=>r.Familia===familia);fd=fd.filter(r=>r.Familia===familia);dd=dd.filter(r=>r.Familia===familia);}
+  if(_familiaSel&&!familia){b=b.filter(r=>r.Familia===_familiaSel);fd=fd.filter(r=>r.Familia===_familiaSel);dd=dd.filter(r=>r.Familia===_familiaSel);}
   if(dep){b=b.filter(r=>r.DepResponsable===dep);fd=fd.filter(r=>r.DepResponsable===dep);dd=dd.filter(r=>r.DepResponsable===dep);}
-  if(coord){b=b.filter(r=>r.CoordDatos===coord);fd=fd.filter(r=>r.CoordDatos===coord);}
+  if(coord){b=b.filter(r=>r.CoordDatos===coord);fd=fd.filter(r=>r.CoordDatos===coord);dd=dd.filter(r=>r.Coordinador===coord);}
   if(op){b=b.filter(r=>r.OpDatos===op);fd=fd.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
   if(dev){b=b.filter(r=>r.Desviacion===dev);fd=fd.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
   if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
