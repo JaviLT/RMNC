@@ -307,16 +307,22 @@ function aplicar(){
 
   const kf=r=>parseFloat(r.CantDetenido)||0;
 
-  // Grafica kilos por mes (TODOS los status)
+
+
+  // Grafica kilos por mes: CantDetenido, Aceptado, Scrap
   const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
-  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=kf(r);ace[m]+=parseFloat(r.Aceptado)||0;rec[m]+=parseFloat(r.Scrap)||0;}});
+  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
+    det[m]+=parseFloat(r.CantDetenido)||0;
+    ace[m]+=parseFloat(r.Aceptado)||0;
+    rec[m]+=parseFloat(r.Scrap)||0;
+  }});
   barSimple("cKilos",MESES,[
     {label:"Detenidos",data:det.map(v=>+v.toFixed(2)),backgroundColor:"#2a78d6",borderRadius:4},
     {label:"Aceptados",data:ace.map(v=>+v.toFixed(2)),backgroundColor:"#1baf7a",borderRadius:4},
     {label:"Rechazados",data:rec.map(v=>+v.toFixed(2)),backgroundColor:"#e34948",borderRadius:4}
   ]);
 
-  // Kilos ACTUALES (solo Detenido) para las graficas
+  // Subset solo Detenido (para KPI actual)
   const bAct=b.filter(r=>r.Status==="Detenido");
 
   // Grafica tipo desviacion: oculta si hay filtro
@@ -334,60 +340,60 @@ function aplicar(){
       (v)=>{document.getElementById("f-dev").value=v;document.getElementById("clear-tipo").classList.add("visible");aplicar();},dev);
   }
 
-  // Grafica dep vs linea (kilos actuales)
+  // Grafica dep vs linea — CantDetenido todos los status
   const titleDep=document.getElementById("title-dep");
   const clearDep=document.getElementById("clear-dep");
   if(dep){
-    titleDep.textContent="Kilos actuales por línea — "+dep;
+    titleDep.textContent="Kilos detenidos por línea — "+dep;
     clearDep.classList.add("visible");
-    const cl={};bAct.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+kf(r);});
+    const cl={};b.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
     const ls=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ls.map(x=>x[0]),ls.map(x=>+x[1].toFixed(2)),"#eda100",
       (v)=>{_depSel=(_depSel===v)?null:v;aplicar();},_depSel);
   } else {
-    titleDep.textContent="Kilos actuales por departamento";
-    const cd={};bAct.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+kf(r);});
+    titleDep.textContent="Kilos detenidos por departamento";
+    const cd={};b.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds=Object.entries(cd).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ds.map(x=>x[0]),ds.map(x=>+x[1].toFixed(2)),"#1a4a8a",
       (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
   }
 
-  // Grafica operador (kilos actuales)
+  // Grafica operador — Kilos de DATOS
   const co={};dd.forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
   const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
   barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#4a3aa7",
     (v)=>{document.getElementById("f-op").value=v;document.getElementById("clear-op").classList.add("visible");aplicar();},op);
 
-  // Grafica familia / descripcion (kilos actuales)
+  // Grafica familia / descripcion — CantDetenido todos los status
   const titleFam=document.getElementById("title-familia");
   const clearFam=document.getElementById("clear-familia");
   if(_familiaSel){
-    titleFam.textContent="Kilos actuales por descripción — "+_familiaSel;
+    titleFam.textContent="Kilos detenidos por descripción — "+_familiaSel;
     clearFam.classList.add("visible");
-    const cd2={};bAct.filter(r=>r.Familia===(_familiaSel||r.Familia)).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+kf(r);});
+    const cd2={};b.filter(r=>r.Familia===_familiaSel).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
       (v)=>{_familiaSel=(_familiaSel===v)?null:v;aplicar();},_familiaSel);
   } else if(familia){
-    titleFam.textContent="Kilos actuales por descripción — "+familia;
+    titleFam.textContent="Kilos detenidos por descripción — "+familia;
     clearFam.classList.add("visible");
-    const cd2={};bAct.filter(r=>r.Familia===familia).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+kf(r);});
+    const cd2={};b.filter(r=>r.Familia===familia).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
       (v)=>{_familiaSel=v;aplicar();},null);
   } else {
-    titleFam.textContent="Kilos actuales por familia";
-    const cf={};bAct.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+kf(r);});
+    titleFam.textContent="Kilos detenidos por familia";
+    const cf={};b.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+(parseFloat(r.CantDetenido)||0);});
     const fs=Object.entries(cf).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",fs.map(x=>x[0]),fs.map(x=>+x[1].toFixed(2)),"#0e7490",
       (v)=>{_familiaSel=v;clearFam.classList.add("visible");aplicar();},null);
   }
 
   // KPIs
-  const tDet=det.reduce((a,b)=>a+b,0);
-  const tAce=ace.reduce((a,b)=>a+b,0);
-  const tRec=rec.reduce((a,b)=>a+b,0);
-  const tAct=bAct.reduce((s,r)=>s+kf(r),0);
+  const tDet=b.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+  const tAce=b.reduce((s,r)=>s+(parseFloat(r.Aceptado)||0),0);
+  const tRec=b.reduce((s,r)=>s+(parseFloat(r.Scrap)||0),0);
+  const tAct=bAct.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
   const fmt=v=>v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById("kpi-det-total").textContent=fmt(tDet);
   document.getElementById("kpi-det-actual").textContent=fmt(tAct);
@@ -449,7 +455,9 @@ window.onload=async function(){
     fillOpts("f-coord",D.filtros.coords); fillOpts("f-op",D.filtros.ops);
     fillOpts("f-familia",D.filtros.familias);
     const selAnio=document.getElementById("f-anio");
+    const selMes=document.getElementById("f-mes");
     for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
+    for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
     aplicar();
   } catch(e){
     console.error("Error cargando datos:",e);
