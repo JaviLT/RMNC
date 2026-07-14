@@ -150,7 +150,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
   <div class="row-half">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Kilos detenidos por operador (top 10)</div>
+        <div class="card-title" id="title-op">Kilos detenidos por coordinador</div>
         <button class="clear-btn" id="clear-op" onclick="limpiarFiltroOp()">✕ Limpiar</button>
       </div>
       <div style="position:relative;width:100%;height:240px;"><canvas id="cOp"></canvas></div>
@@ -169,7 +169,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
 const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
 let D=null, MES_ACTUAL="", ANIO_ACTUAL="";
-let _depSel=null, _familiaSel=null;
+let _depSel=null, _familiaSel=null, _descSel=null;
 let _filtrosActivos={};
 
 function gridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(); }
@@ -261,13 +261,16 @@ function limpiarFiltroTipo(){
 }
 
 function limpiarFiltroOp(){
+  document.getElementById("f-coord").value="";
   document.getElementById("f-op").value="";
   document.getElementById("clear-op").classList.remove("visible");
+  fillSelect("f-op", D.allOps);
   aplicar();
 }
 
 function limpiarFiltroFamilia(){
   _familiaSel=null;
+  _descSel=null;
   document.getElementById("f-familia").value="";
   document.getElementById("clear-familia").classList.remove("visible");
   aplicar();
@@ -303,7 +306,7 @@ function aplicar(){
   if(op){b=b.filter(r=>r.OpDatos===op);fd=fd.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
   if(dev){b=b.filter(r=>r.Desviacion===dev);fd=fd.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
   if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
-  if(_familiaSel){b=b.filter(r=>r.Descripcion===_familiaSel);}
+  if(_descSel){b=b.filter(r=>r.Descripcion===_descSel);}
 
   const kf=r=>parseFloat(r.CantDetenido)||0;
 
@@ -358,31 +361,48 @@ function aplicar(){
       (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
   }
 
-  // Grafica operador — Kilos de DATOS
-  const co={};dd.forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
-  const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#4a3aa7",
-    (v)=>{document.getElementById("f-op").value=v;document.getElementById("clear-op").classList.add("visible");aplicar();},op);
+  // Grafica coordinador/operador
+  const titleOp=document.getElementById("title-op");
+  const clearOp=document.getElementById("clear-op");
+  if(coord){
+    if(titleOp) titleOp.textContent="Kilos detenidos por operador — "+coord;
+    clearOp.classList.add("visible");
+    const co={};dd.filter(r=>r.Coordinador===coord).forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
+    const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#4a3aa7",
+      (v)=>{document.getElementById("f-op").value=v;aplicar();},op);
+  } else {
+    if(titleOp) titleOp.textContent="Kilos detenidos por coordinador";
+    const cc={};dd.forEach(r=>{if(r.Coordinador)cc[r.Coordinador]=(cc[r.Coordinador]||0)+(parseFloat(r.Kilos)||0);});
+    const cs=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cOp",cs.map(x=>x[0]),cs.map(x=>+x[1].toFixed(2)),"#4a3aa7",
+      (v)=>{document.getElementById("f-coord").value=v;clearOp.classList.add("visible");aplicar();},coord);
+  }
 
-  // Grafica familia / descripcion — CantDetenido todos los status
+  // Grafica familia / descripcion
+  const familiaActiva=_familiaSel||familia;
   const titleFam=document.getElementById("title-familia");
   const clearFam=document.getElementById("clear-familia");
-  if(_familiaSel){
-    titleFam.textContent="Kilos detenidos por descripción — "+_familiaSel;
+  if(familiaActiva){
+    titleFam.textContent="Kilos detenidos por descripción — "+familiaActiva;
     clearFam.classList.add("visible");
-    const cd2={};b.filter(r=>r.Familia===_familiaSel).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
+    const bFam=b.filter(r=>r.Familia===familiaActiva);
+    const cd2={};bFam.forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
-      (v)=>{_familiaSel=(_familiaSel===v)?null:v;aplicar();},_familiaSel);
-  } else if(familia){
-    titleFam.textContent="Kilos detenidos por descripción — "+familia;
-    clearFam.classList.add("visible");
-    const cd2={};b.filter(r=>r.Familia===familia).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
-      (v)=>{_familiaSel=v;aplicar();},null);
+      (v)=>{_descSel=(_descSel===v)?null:v;aplicar();},_descSel);
+    // Filtrar grafica de departamento por familia activa (si no hay dep seleccionado)
+    if(!dep){
+      const bFamDep=bFam.filter(r=>!_descSel||r.Descripcion===_descSel);
+      const cdF={};bFamDep.forEach(r=>{if(r.DepResponsable)cdF[r.DepResponsable]=(cdF[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
+      const dsF=Object.entries(cdF).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      titleDep.textContent="Kilos detenidos por departamento — "+familiaActiva;
+      bar("cDep",dsF.map(x=>x[0]),dsF.map(x=>+x[1].toFixed(2)),"#1a4a8a",
+        (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
+    }
   } else {
     titleFam.textContent="Kilos detenidos por familia";
+    _descSel=null;
     const cf={};b.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+(parseFloat(r.CantDetenido)||0);});
     const fs=Object.entries(cf).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",fs.map(x=>x[0]),fs.map(x=>+x[1].toFixed(2)),"#0e7490",
@@ -415,7 +435,7 @@ function buscarFolio(){
 }
 
 function reset(){
-  _depSel=null; _familiaSel=null;
+  _depSel=null; _familiaSel=null; _descSel=null;
   ["f-anio","f-mes","f-cliente","f-familia","f-dep","f-coord","f-op","f-dev"].forEach(id=>document.getElementById(id).selectedIndex=0);
   fillSelect("f-op",D.allOps); fillSelect("f-coord",D.allCoords);
   fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
