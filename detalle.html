@@ -5,21 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Detalle de Folio — RMNC</title>
 <style>
-:root{
-  --bg:#f0f4f8; --card:#ffffff; --text:#1a1a1a; --text-sub:#666; --text-mut:#999;
-  --border:#e0e8f0; --header:#1a4a8a; --kpibg:#f7faff;
-}
-[data-theme="dark"]{
-  --bg:#0f172a; --card:#1e293b; --text:#e8edf4; --text-sub:#a8b3c4; --text-mut:#7c8aa0;
-  --border:#334155; --header:#15355e; --kpibg:#16243d;
-}
+:root{--bg:#f0f4f8;--card:#ffffff;--text:#1a1a1a;--text-sub:#666;--text-mut:#999;--border:#e0e8f0;--header:#1a4a8a;--kpibg:#f7faff;}
+[data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--text:#e8edf4;--text-sub:#a8b3c4;--text-mut:#7c8aa0;--border:#334155;--header:#15355e;--kpibg:#16243d;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-width:0;overflow-x:hidden}
 .header{background:var(--header);color:white;padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .header h1{font-size:18px;font-weight:500}
 .header-right{margin-left:auto;display:flex;gap:10px;align-items:center}
-.back-btn{background:rgba(255,255,255,.15);border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
-.theme-toggle{background:rgba(255,255,255,.15);border:none;color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+.back-btn,.theme-toggle{background:rgba(255,255,255,.15);border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
 .content{padding:20px 24px;max-width:1100px;margin:0 auto}
 .card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:20px;margin-bottom:16px}
 .card-title{font-size:15px;font-weight:600;color:var(--header);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px}
@@ -51,146 +44,87 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
   </div>
 </div>
-
 <div class="content" id="content"></div>
 
 <script>
 const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
-let DETALLE = null;
+let DETALLE=null;
 
-function getFolioParam(){
-  const params=new URLSearchParams(window.location.search);
-  return params.get("folio");
-}
-
-function field(label, value){
-  return '<div class="field"><div class="field-label">'+label+'</div><div class="field-value">'+(value||"—")+'</div></div>';
-}
-
-function fmtNum(v){
-  const n=parseFloat(v);
-  return isNaN(n) ? (v||"0") : n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
-}
+function getFolioParam(){return new URLSearchParams(window.location.search).get("folio");}
+function field(label,value){return '<div class="field"><div class="field-label">'+label+'</div><div class="field-value">'+(value||"—")+'</div></div>';}
+function fmtNum(v){const n=parseFloat(v);return isNaN(n)?(v||"0"):n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 function render(){
   const folio=getFolioParam();
   const content=document.getElementById("content");
   document.getElementById("page-title").textContent="Detalle de folio "+(folio||"");
-
-  if(!folio){
-    content.innerHTML='<div class="not-found">No se especificó ningún folio.</div>';
-    return;
-  }
-
+  if(!folio){content.innerHTML='<div class="not-found">No se especificó ningún folio.</div>';return;}
   const resp=DETALLE.respuestas.find(r=>String(r.Folio)===String(folio));
-  if(!resp){
-    content.innerHTML='<div class="not-found">No se encontró el folio "'+folio+'".</div>';
-    return;
-  }
-
+  if(!resp){content.innerHTML='<div class="not-found">No se encontró el folio "'+folio+'".</div>';return;}
   const status=resp.Status||"";
   let html="";
 
-  // SECCION 1: Datos generales (siempre)
-  html += '<div class="card"><div class="card-title">Información general — <span class="status-badge status-'+status+'">'+status+'</span></div><div class="field-grid">';
-  html += field("Folio", resp.Folio);
-  html += field("Fecha", resp.Fecha);
-  html += field("Número de nómina", resp.NumeroNomina);
-  html += field("Auditor", resp.Auditor);
-  html += field("Cliente", resp.Cliente);
-  html += field("Código de cliente", resp.CodCliente);
-  html += field("Código de producto", resp.Codigo);
-  html += field("Descripción del producto", resp.Descripcion);
-  html += field("Pedido", resp.Pedido);
-  html += field("Lote", resp.Lote);
-  html += field("Desviación detectada", resp.Desviacion);
-  html += field("Departamento responsable", resp.DepResponsable);
-  html += field("Línea donde se generó la falla", resp.Linea);
-  html += field("Departamento donde se detectó la falla", resp.DepDetuvo);
-  html += field("Línea donde se detuvo", resp.LineaDetuvo);
-  html += '</div></div>';
+  html+='<div class="card"><div class="card-title">Información general — <span class="status-badge status-'+status+'">'+status+'</span></div><div class="field-grid">';
+  html+=field("Folio",resp.Folio)+field("Fecha",resp.Fecha)+field("Número de nómina",resp.NumeroNomina)+field("Auditor",resp.Auditor);
+  html+=field("Cliente",resp.Cliente)+field("Código de cliente",resp.CodCliente)+field("Código de producto",resp.Codigo);
+  html+=field("Descripción del producto",resp.Descripcion)+field("Pedido",resp.Pedido)+field("Lote",resp.Lote);
+  html+=field("Desviación detectada",resp.Desviacion)+field("Departamento responsable",resp.DepResponsable);
+  html+=field("Línea donde se generó la falla",resp.Linea)+field("Departamento donde se detectó la falla",resp.DepDetuvo);
+  html+=field("Línea donde se detuvo",resp.LineaDetuvo);
+  html+='</div></div>';
 
-  // SECCION 2: Datos de DATOS.csv (siempre, totales)
-  const datosFolio = DETALLE.datos.filter(d=>String(d.Folio)===String(folio));
-  html += '<div class="card"><div class="card-title">Detalle de piezas / lotes</div>';
+  const datosFolio=DETALLE.datos.filter(d=>String(d.Folio)===String(folio));
+  html+='<div class="card"><div class="card-title">Detalle de piezas / lotes</div>';
   if(datosFolio.length>0){
-    html += '<table class="datos-table"><thead><tr>';
-    html += '<th>Cajas</th><th>IDs</th><th>Lote</th><th>Coordinador</th><th>Operador</th>';
-    html += '<th>Piezas detenidas</th><th>Kilos detenidos</th>';
-    if(status!=="Detenido"){
-      html += '<th>Piezas aceptadas</th><th>Kilos aceptados</th>';
-    }
-    html += '</tr></thead><tbody>';
-    let totPiezas=0, totKilos=0, totPiezasFin=0, totKilosFin=0;
+    html+='<table class="datos-table"><thead><tr><th>Cajas</th><th>IDs</th><th>Lote</th><th>Coordinador</th><th>Operador</th><th>Piezas detenidas</th><th>Kilos detenidos</th>';
+    if(status!=="Detenido") html+='<th>Piezas aceptadas</th><th>Kilos aceptados</th>';
+    html+='</tr></thead><tbody>';
+    let totP=0,totK=0,totPF=0,totKF=0;
     datosFolio.forEach(d=>{
-      totPiezas += parseFloat(d.Piezas)||0;
-      totKilos  += parseFloat(d.Kilos)||0;
-      totPiezasFin += parseFloat(d.PiezasFinales)||0;
-      totKilosFin  += parseFloat((d.KgFinales||"").toString().replace(",",""))||0;
-      html += '<tr><td>'+(d.Cajas||"—")+'</td><td>'+(d.IDs||"—")+'</td><td>'+(d.Lote||"—")+'</td>';
-      html += '<td>'+(d.Coordinador||"—")+'</td><td>'+(d.Operador||"—")+'</td>';
-      html += '<td>'+fmtNum(d.Piezas)+'</td><td>'+fmtNum(d.Kilos)+'</td>';
-      if(status!=="Detenido"){
-        html += '<td>'+fmtNum(d.PiezasFinales)+'</td><td>'+fmtNum((d.KgFinales||"").toString().replace(",",""))+'</td>';
-      }
-      html += '</tr>';
+      totP+=parseFloat(d.Piezas)||0; totK+=parseFloat(d.Kilos)||0;
+      totPF+=parseFloat(d.PiezasFinales)||0; totKF+=parseFloat((d.KgFinales||"").toString().replace(",",""))||0;
+      html+='<tr><td>'+(d.Cajas||"—")+'</td><td>'+(d.IDs||"—")+'</td><td>'+(d.Lote||"—")+'</td><td>'+(d.Coordinador||"—")+'</td><td>'+(d.Operador||"—")+'</td>';
+      html+='<td>'+fmtNum(d.Piezas)+'</td><td>'+fmtNum(d.Kilos)+'</td>';
+      if(status!=="Detenido") html+='<td>'+fmtNum(d.PiezasFinales)+'</td><td>'+fmtNum((d.KgFinales||"").toString().replace(",",""))+'</td>';
+      html+='</tr>';
     });
-    html += '<tr class="totales-row"><td colspan="5">TOTAL</td><td>'+fmtNum(totPiezas)+'</td><td>'+fmtNum(totKilos)+'</td>';
-    if(status!=="Detenido"){
-      html += '<td>'+fmtNum(totPiezasFin)+'</td><td>'+fmtNum(totKilosFin)+'</td>';
-    }
-    html += '</tr>';
-    html += '</tbody></table>';
-  } else {
-    html += '<div class="not-found">Sin registros de detalle para este folio.</div>';
-  }
-  html += '</div>';
+    html+='<tr class="totales-row"><td colspan="5">TOTAL</td><td>'+fmtNum(totP)+'</td><td>'+fmtNum(totK)+'</td>';
+    if(status!=="Detenido") html+='<td>'+fmtNum(totPF)+'</td><td>'+fmtNum(totKF)+'</td>';
+    html+='</tr></tbody></table>';
+  } else html+='<div class="not-found">Sin registros de detalle para este folio.</div>';
+  html+='</div>';
 
-  // SECCION 3: Estatus / retrabajo / comentario (siempre, pero contenido cambia)
-  html += '<div class="card"><div class="card-title">Estatus y seguimiento</div><div class="field-grid">';
-  html += field("Estatus", '<span class="status-badge status-'+status+'">'+status+'</span>');
-  html += field("¿Requiere retrabajo?", resp.Retrabajo);
-  html += field("Comentario", resp.Comentario);
-  html += '</div></div>';
+  html+='<div class="card"><div class="card-title">Estatus y seguimiento</div><div class="field-grid">';
+  html+=field("Estatus",'<span class="status-badge status-'+status+'">'+status+'</span>');
+  html+=field("¿Requiere retrabajo?",resp.Retrabajo)+field("Comentario",resp.Comentario);
+  html+='</div></div>';
 
-  // SECCION 4: Solo si NO esta Detenido -> fecha dictamen, auditor seg, disposicion
   if(status!=="Detenido"){
-    html += '<div class="card"><div class="card-title">Cierre del caso</div><div class="field-grid">';
-    html += field("Fecha de dictamen", resp.FechaCierre);
-    html += field("Auditor", resp.AuditorSeg);
-    html += field("Disposición", resp.Disposicion);
-    html += '</div></div>';
+    html+='<div class="card"><div class="card-title">Cierre del caso</div><div class="field-grid">';
+    html+=field("Fecha de dictamen",resp.FechaCierre)+field("Auditor",resp.AuditorSeg)+field("Disposición",resp.Disposicion);
+    html+='</div></div>';
   }
-
-  content.innerHTML = html;
+  content.innerHTML=html;
 }
 
 function toggleTheme(){
-  const html=document.documentElement;
-  const isDark=html.getAttribute("data-theme")==="dark";
-  html.setAttribute("data-theme", isDark?"light":"dark");
-  localStorage.setItem("rmnc-theme", isDark?"light":"dark");
-  document.getElementById("theme-btn").textContent = isDark? "Modo oscuro" : "Modo claro";
+  const isDark=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",isDark?"light":"dark");
+  localStorage.setItem("rmnc-theme",isDark?"light":"dark");
+  document.getElementById("theme-btn").textContent=isDark?"Modo oscuro":"Modo claro";
 }
 
-(function(){
-  if(localStorage.getItem("rmnc-theme")==="dark"){
-    document.documentElement.setAttribute("data-theme","dark");
-  }
-})();
+(function(){if(localStorage.getItem("rmnc-theme")==="dark")document.documentElement.setAttribute("data-theme","dark");})();
 
 window.onload=async function(){
-  if(localStorage.getItem("rmnc-theme")==="dark"){
-    document.getElementById("theme-btn").textContent="Modo claro";
-  }
-  try {
-    const resp = await fetch(JSON_URL + "?t=" + Date.now());
-    const json = await resp.json();
-    DETALLE = { respuestas: json.respuestas, datos: json.datos };
+  if(localStorage.getItem("rmnc-theme")==="dark") document.getElementById("theme-btn").textContent="Modo claro";
+  try{
+    const r=await fetch(JSON_URL+"?t="+Date.now());
+    const json=await r.json();
+    DETALLE={respuestas:json.respuestas,datos:json.datos};
     render();
-  } catch(e) {
-    console.error("Error cargando datos:", e);
-    document.getElementById("content").innerHTML='<div class="not-found">Error al cargar los datos. Verifica tu conexión.</div>';
+  } catch(e){
+    document.getElementById("content").innerHTML='<div class="not-found">Error al cargar los datos.</div>';
   }
 };
 </script>

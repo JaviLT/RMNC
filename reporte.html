@@ -7,14 +7,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root{
-  --bg:#f0f4f8; --card:#ffffff; --text:#1a1a1a; --text-sub:#666; --text-mut:#999;
-  --border:#e0e8f0; --header:#1a4a8a; --filterbg:#e8f0fb; --filterborder:#c5d8f0;
-  --grid:#e1e0d9; --kpibg:#f7faff;
+  --bg:#f0f4f8;--card:#ffffff;--text:#1a1a1a;--text-sub:#666;--text-mut:#999;
+  --border:#e0e8f0;--header:#1a4a8a;--filterbg:#e8f0fb;--filterborder:#c5d8f0;
+  --grid:#e1e0d9;--kpibg:#f7faff;
 }
 [data-theme="dark"]{
-  --bg:#0f172a; --card:#1e293b; --text:#e8edf4; --text-sub:#a8b3c4; --text-mut:#7c8aa0;
-  --border:#334155; --header:#15355e; --filterbg:#16243d; --filterborder:#2c4870;
-  --grid:#334155; --kpibg:#16243d;
+  --bg:#0f172a;--card:#1e293b;--text:#e8edf4;--text-sub:#a8b3c4;--text-mut:#7c8aa0;
+  --border:#334155;--header:#15355e;--filterbg:#16243d;--filterborder:#2c4870;
+  --grid:#334155;--kpibg:#16243d;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-width:0;overflow-x:hidden;transition:background .2s,color .2s}
@@ -34,18 +34,24 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
 .btn{padding:5px 14px;font-size:12px;border:1px solid var(--header);border-radius:6px;background:var(--card);color:var(--header);cursor:pointer;white-space:nowrap}
 .btn:hover{background:var(--header);color:white}
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border)}
-.kpi{background:var(--kpibg);border-radius:8px;padding:12px 16px;border-left:4px solid var(--header)}
+.kpi{background:var(--kpibg);border-radius:8px;padding:12px 16px;border-left:4px solid var(--header);cursor:pointer;transition:opacity .15s}
+.kpi:hover{opacity:.85}
 .kpi.ace{border-left-color:#1baf7a}
 .kpi.rec{border-left-color:#e34948}
 .kpi.dev{border-left-color:#eda100}
+.kpi.det-actual{border-left-color:#f59e0b}
 .kpi-label{font-size:10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .kpi-value{font-size:22px;font-weight:600;color:var(--text)}
 .kpi-sub{font-size:10px;color:var(--text-mut);margin-top:2px}
 .charts-wrap{padding:16px 24px;display:grid;gap:14px}
 .row-half{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 .card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;min-width:0}
-.card-title{font-size:13px;font-weight:600;color:var(--header);margin-bottom:8px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.card-title{font-size:13px;font-weight:600;color:var(--header)}
 [data-theme="dark"] .card-title{color:#7fb0e8}
+.clear-btn{font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text-sub);cursor:pointer;display:none}
+.clear-btn.visible{display:inline-block}
+.clear-btn:hover{background:var(--header);color:white;border-color:var(--header)}
 .legend{display:flex;gap:12px;font-size:11px;color:var(--text-sub);margin-bottom:8px;flex-wrap:wrap}
 .legend span{display:flex;align-items:center;gap:4px}
 .sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
@@ -56,7 +62,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
   <h1>Reporte de calidad — RMNC</h1>
   <div class="header-right">
-    <span class="updated">Actualizado: 14/Jul/2026 08:37</span>
+    <span class="updated" id="fecha-upd">Cargando...</span>
     <div class="search-box">
       <input type="text" id="buscar-folio" placeholder="Buscar folio..." onkeypress="if(event.key==='Enter')buscarFolio()">
       <button onclick="buscarFolio()">Buscar</button>
@@ -66,8 +72,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
 </div>
 
 <div class="filters">
-  <div class="fg"><label>Año</label>
-    <select id="f-anio" onchange="aplicar()"><option value="">Todos</option><option value="2026">2026</option></select></div>
+  <div class="fg"><label>Año</label><select id="f-anio" onchange="aplicar()"><option value="">Todos</option></select></div>
   <div class="fg"><label>Mes</label>
     <select id="f-mes" onchange="aplicar()"><option value="">Todos</option>
     <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
@@ -75,56 +80,87 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
     <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
     <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
     </select></div>
-  <div class="fg"><label>Departamento</label>
-    <select id="f-dep" onchange="onDepChange()"><option value="">Todos</option><option value="CONVERSIÓN">CONVERSIÓN</option><option value="EXTRUSIÓN">EXTRUSIÓN</option><option value="IMPRESIÓN">IMPRESIÓN</option></select></div>
-  <div class="fg"><label>Cliente</label>
-    <select id="f-cliente" onchange="aplicar()"><option value="">Todos</option><option value="ADITIVOS Y MATERIAS PRIMAS DEL SURESTE">ADITIVOS Y MATERIAS PRIMAS DEL SURESTE</option><option value="MAW MEXICANA">MAW MEXICANA</option><option value="MONTECARLO">MONTECARLO</option><option value="NABEL SRL">NABEL SRL</option><option value="SIGMA ALIMENTOS NORESTE">SIGMA ALIMENTOS NORESTE</option><option value="SUARCREM HOLDING">SUARCREM HOLDING</option></select></div>
-  <div class="fg"><label>Coordinador</label>
-    <select id="f-coord" onchange="aplicar()"><option value="">Todos</option><option value="ANDRADE ARIAS JESUS ALEJANDRO">ANDRADE ARIAS JESUS ALEJANDRO</option><option value="BALDERAS CARRILLO RIBALDO ALDAIR">BALDERAS CARRILLO RIBALDO ALDAIR</option><option value="GAMEZ GUEL  JOSE LUIS">GAMEZ GUEL  JOSE LUIS</option><option value="GONZALEZ GURROLA JOSÉ JOAQUIN">GONZALEZ GURROLA JOSÉ JOAQUIN</option><option value="HERNANDEZ CASANGO HEBER">HERNANDEZ CASANGO HEBER</option><option value="MORENO BADILLO JUAN HUMBERTO">MORENO BADILLO JUAN HUMBERTO</option><option value="PALOMO NOROÑA JAVIER">PALOMO NOROÑA JAVIER</option><option value="PRESAS JASSO ERICK RODRIGO">PRESAS JASSO ERICK RODRIGO</option></select></div>
-  <div class="fg"><label>Operador</label>
-    <select id="f-op" onchange="aplicar()"><option value="">Todos</option><option value="CORONADO MARTINEZ ROSA">CORONADO MARTINEZ ROSA</option><option value="CRUZ HERNANDEZ JUAN ANGEL">CRUZ HERNANDEZ JUAN ANGEL</option><option value="ESQUIVEL SALAS MANUEL ALEJANDRO">ESQUIVEL SALAS MANUEL ALEJANDRO</option><option value="GAMEZ GARCIA ABDON">GAMEZ GARCIA ABDON</option><option value="GONZALEZ CASTRO EDGAR ALEJANDRO">GONZALEZ CASTRO EDGAR ALEJANDRO</option><option value="HERRERA FLORES FABIOLA ANAHI">HERRERA FLORES FABIOLA ANAHI</option><option value="MARTINEZ OCHOA BRANDON GILBERTO">MARTINEZ OCHOA BRANDON GILBERTO</option><option value="MORENO BADILLO JUAN HUMBERTO">MORENO BADILLO JUAN HUMBERTO</option><option value="PALOMO NOROÑA JAVIER">PALOMO NOROÑA JAVIER</option><option value="SALAS ROSALES RICARDO GABRIEL">SALAS ROSALES RICARDO GABRIEL</option><option value="SANCHEZ GONZALEZ BRANDON IMANOL">SANCHEZ GONZALEZ BRANDON IMANOL</option><option value="SANTOS MORALES CRUZ ANTONIO">SANTOS MORALES CRUZ ANTONIO</option></select></div>
-  <div class="fg"><label>Tipo desviación</label>
-    <select id="f-dev" onchange="aplicar()"><option value="">Todos</option><option value="ARRUGAS">ARRUGAS</option><option value="DESPRENDIMIENTO DE TINTA">DESPRENDIMIENTO DE TINTA</option><option value="DIFERENCIA DE TONALIDAD">DIFERENCIA DE TONALIDAD</option><option value="MOVIMIENTO DE REGISTRO">MOVIMIENTO DE REGISTRO</option><option value="REPINTE">REPINTE</option><option value="SELLO DEBIL">SELLO DEBIL</option><option value="TEXTO ILEGIBLE">TEXTO ILEGIBLE</option><option value="VARIACION DE SELLOS">VARIACION DE SELLOS</option></select></div>
+  <div class="fg"><label>Cliente</label><select id="f-cliente" onchange="aplicar()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Familia</label><select id="f-familia" onchange="aplicar()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Departamento</label><select id="f-dep" onchange="onDepChange()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Coordinador</label><select id="f-coord" onchange="aplicar()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Operador</label><select id="f-op" onchange="aplicar()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Tipo desviación</label><select id="f-dev" onchange="aplicar()"><option value="">Todos</option></select></div>
   <button class="btn" onclick="reset()">Limpiar filtros</button>
 </div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-label">Kilos detenidos</div><div class="kpi-value" id="kpi-det">959.18</div><div class="kpi-sub">Total acumulado</div></div>
-  <div class="kpi ace"><div class="kpi-label">Kilos aceptados</div><div class="kpi-value" id="kpi-ace">236.82</div><div class="kpi-sub" id="sub-ace">24.7% del detenido</div></div>
-  <div class="kpi rec"><div class="kpi-label">Kilos rechazados</div><div class="kpi-value" id="kpi-rec">200.66</div><div class="kpi-sub" id="sub-rec">20.9% del detenido</div></div>
-  <div class="kpi dev"><div class="kpi-label">Folios totales</div><div class="kpi-value" id="kpi-folios">10</div><div class="kpi-sub">Folios registrados</div></div>
+  <div class="kpi" onclick="irDetalleKilos('todos')">
+    <div class="kpi-label">Kilos detenidos totales</div>
+    <div class="kpi-value" id="kpi-det-total">—</div>
+    <div class="kpi-sub">Clic para ver detalle</div>
+  </div>
+  <div class="kpi det-actual" onclick="irDetalleKilos('Detenido')">
+    <div class="kpi-label">Kilos detenidos actuales</div>
+    <div class="kpi-value" id="kpi-det-actual">—</div>
+    <div class="kpi-sub">Solo status Detenido</div>
+  </div>
+  <div class="kpi ace" onclick="irDetalleKilos('Aceptado')">
+    <div class="kpi-label">Kilos aceptados</div>
+    <div class="kpi-value" id="kpi-ace">—</div>
+    <div class="kpi-sub" id="sub-ace">—</div>
+  </div>
+  <div class="kpi rec" onclick="irDetalleKilos('Rechazado')">
+    <div class="kpi-label">Kilos rechazados</div>
+    <div class="kpi-value" id="kpi-rec">—</div>
+    <div class="kpi-sub" id="sub-rec">—</div>
+  </div>
+  <div class="kpi dev">
+    <div class="kpi-label">Folios totales</div>
+    <div class="kpi-value" id="kpi-folios">—</div>
+    <div class="kpi-sub">Folios registrados</div>
+  </div>
 </div>
 
 <div class="charts-wrap">
   <div class="card">
-    <div class="card-title">Kilos detenidos, aceptados y rechazados por mes</div>
+    <div class="card-header">
+      <div class="card-title">Kilos detenidos, aceptados y rechazados por mes</div>
+    </div>
     <div class="legend">
       <span><span class="sq" style="background:#2a78d6"></span>Detenidos</span>
       <span><span class="sq" style="background:#1baf7a"></span>Aceptados</span>
       <span><span class="sq" style="background:#e34948"></span>Rechazados</span>
     </div>
-    <div style="position:relative;width:100%;height:240px;"><canvas id="cKilos" role="img" aria-label="Kilos por mes">Kilos por mes.</canvas></div>
+    <div style="position:relative;width:100%;height:240px;"><canvas id="cKilos"></canvas></div>
   </div>
 
   <div class="row-half">
     <div class="card" id="card-tipo">
-      <div class="card-title">Kilos detenidos por tipo de desviación</div>
-      <div style="position:relative;width:100%;height:240px;"><canvas id="cTipo" role="img" aria-label="Kilos por tipo de desviacion">Kilos por tipo.</canvas></div>
+      <div class="card-header">
+        <div class="card-title">Kilos detenidos por tipo de desviación</div>
+        <button class="clear-btn" id="clear-tipo" onclick="limpiarFiltroTipo()">✕ Limpiar</button>
+      </div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cTipo"></canvas></div>
     </div>
     <div class="card" id="card-dep">
-      <div class="card-title" id="title-dep">Kilos detenidos por departamento</div>
-      <div style="position:relative;width:100%;height:240px;"><canvas id="cDep" role="img" aria-label="Kilos por departamento">Kilos por departamento.</canvas></div>
+      <div class="card-header">
+        <div class="card-title" id="title-dep">Kilos detenidos por departamento</div>
+        <button class="clear-btn" id="clear-dep" onclick="limpiarFiltroDep()">✕ Limpiar</button>
+      </div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cDep"></canvas></div>
     </div>
   </div>
 
   <div class="row-half">
     <div class="card">
-      <div class="card-title">Kilos detenidos por operador (top 10)</div>
-      <div style="position:relative;width:100%;height:240px;"><canvas id="cOp" role="img" aria-label="Kilos por operador">Kilos por operador.</canvas></div>
+      <div class="card-header">
+        <div class="card-title">Kilos detenidos por operador (top 10)</div>
+        <button class="clear-btn" id="clear-op" onclick="limpiarFiltroOp()">✕ Limpiar</button>
+      </div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cOp"></canvas></div>
     </div>
-    <div class="card">
-      <div class="card-title">Kilos detenidos por descripción de producto (top 10)</div>
-      <div style="position:relative;width:100%;height:240px;"><canvas id="cDesc" role="img" aria-label="Kilos por descripcion">Kilos por descripcion.</canvas></div>
+    <div class="card" id="card-familia">
+      <div class="card-header">
+        <div class="card-title" id="title-familia">Kilos detenidos por familia</div>
+        <button class="clear-btn" id="clear-familia" onclick="limpiarFiltroFamilia()">✕ Limpiar</button>
+      </div>
+      <div style="position:relative;width:100%;height:240px;"><canvas id="cFamilia"></canvas></div>
     </div>
   </div>
 </div>
@@ -132,162 +168,158 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-wid
 <script>
 const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
-let D = null;
-let MES_ACTUAL = "";
-let ANIO_ACTUAL = "";
+let D=null, MES_ACTUAL="", ANIO_ACTUAL="";
+let _depSel=null, _familiaSel=null;
+let _filtrosActivos={};
 
 function gridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(); }
 function textColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--text-sub').trim(); }
+function truncar(s,n){ s=String(s); return s.length>n?s.slice(0,n)+"…":s; }
 
-function truncar(s, n){ s=String(s); return s.length>n ? s.slice(0,n)+"…" : s; }
-
-function colorConOpacidad(baseColor, fullLabels, valorFiltroActual){
-  if(!valorFiltroActual) return fullLabels.map(()=>baseColor);
-  return fullLabels.map(l => l===valorFiltroActual ? baseColor : baseColor+"4D");
+function colorConOpacidad(baseColor,fullLabels,valorActual){
+  if(!valorActual) return fullLabels.map(()=>baseColor);
+  return fullLabels.map(l=>l===valorActual?baseColor:baseColor+"4D");
 }
 
-function barH(id, fullLabels, dataValues, baseColor, onClickFn, valorFiltroActual){
+function barH(id,fullLabels,dataValues,baseColor,onClickFn,valorActual){
   const c=document.getElementById(id);
   if(c._ch)c._ch.destroy();
-  const shortLabels = fullLabels.map(l=>truncar(l,18));
-  const colores = colorConOpacidad(baseColor, fullLabels, valorFiltroActual);
-  Chart.defaults.font.family="Arial";
-  Chart.defaults.font.size=11;
-  Chart.defaults.color=textColor();
-  c._ch=new Chart(c,{
-    type:"bar",
-    data:{labels:shortLabels, datasets:[{data:dataValues, backgroundColor:colores, borderRadius:4}]},
-    options:{
-      indexAxis:"y",
-      responsive:true, maintainAspectRatio:false,
-      onClick:(evt, elements)=>{
-        if(elements.length>0 && onClickFn){
-          const idx=elements[0].index;
-          onClickFn(fullLabels[idx]);
-        }
-      },
-      onHover:(evt, elements)=>{ evt.native.target.style.cursor = elements.length>0 ? "pointer" : "default"; },
-      plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{title:(items)=>fullLabels[items[0].dataIndex]}}
-      },
-      scales:{
-        x:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX")}},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
-      }
-    }
-  });
+  const shortLabels=fullLabels.map(l=>truncar(l,20));
+  const colores=colorConOpacidad(baseColor,fullLabels,valorActual);
+  Chart.defaults.font.family="Arial"; Chart.defaults.font.size=11; Chart.defaults.color=textColor();
+  c._ch=new Chart(c,{type:"bar",data:{labels:shortLabels,datasets:[{data:dataValues,backgroundColor:colores,borderRadius:4}]},options:{
+    indexAxis:"y",responsive:true,maintainAspectRatio:false,
+    onClick:(evt,els)=>{if(els.length>0&&onClickFn)onClickFn(fullLabels[els[0].index]);},
+    onHover:(evt,els)=>{evt.native.target.style.cursor=els.length>0?"pointer":"default";},
+    plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>fullLabels[items[0].dataIndex]}}},
+    scales:{x:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX")}},y:{grid:{display:false},ticks:{font:{size:10}}}}
+  }});
 }
 
-function bar(id,labels,dataValues,baseColor,onClickFn,valorFiltroActual){
+function bar(id,labels,dataValues,baseColor,onClickFn,valorActual){
   const c=document.getElementById(id);
   if(c._ch)c._ch.destroy();
-  const colores = colorConOpacidad(baseColor, labels, valorFiltroActual);
-  Chart.defaults.font.family="Arial";
-  Chart.defaults.font.size=11;
-  Chart.defaults.color=textColor();
+  const colores=colorConOpacidad(baseColor,labels,valorActual);
+  Chart.defaults.font.family="Arial"; Chart.defaults.font.size=11; Chart.defaults.color=textColor();
   c._ch=new Chart(c,{type:"bar",data:{labels,datasets:[{data:dataValues,backgroundColor:colores,borderRadius:4}]},options:{
-    responsive:true, maintainAspectRatio:false,
-    onClick:(evt, elements)=>{
-      if(elements.length>0 && onClickFn){
-        const idx=elements[0].index;
-        onClickFn(labels[idx]);
-      }
-    },
-    onHover:(evt, elements)=>{ evt.native.target.style.cursor = elements.length>0 ? "pointer" : "default"; },
+    responsive:true,maintainAspectRatio:false,
+    onClick:(evt,els)=>{if(els.length>0&&onClickFn)onClickFn(labels[els[0].index]);},
+    onHover:(evt,els)=>{evt.native.target.style.cursor=els.length>0?"pointer":"default";},
     plugins:{legend:{display:false}},
-    scales:{
-      x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},
-      y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}
-    }
+    scales:{x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}}
   }});
 }
 
 function barSimple(id,labels,datasets){
   const c=document.getElementById(id);
   if(c._ch)c._ch.destroy();
-  Chart.defaults.font.family="Arial";
-  Chart.defaults.font.size=11;
-  Chart.defaults.color=textColor();
+  Chart.defaults.font.family="Arial"; Chart.defaults.font.size=11; Chart.defaults.color=textColor();
   c._ch=new Chart(c,{type:"bar",data:{labels,datasets},options:{
-    responsive:true, maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false}},
-    scales:{
-      x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},
-      y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}
-    }
+    scales:{x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}}
   }});
 }
 
-function fillSelect(id, valores, valorActual){
+function fillSelect(id,valores,valorActual){
   const sel=document.getElementById(id);
   const prev=valorActual!==undefined?valorActual:sel.value;
   sel.innerHTML='<option value="">Todos</option>';
-  valores.forEach(v=>{
-    const o=document.createElement("option");
-    o.value=v; o.textContent=v;
-    if(v===prev)o.selected=true;
-    sel.appendChild(o);
-  });
+  valores.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;if(v===prev)o.selected=true;sel.appendChild(o);});
 }
 
 function onDepChange(){
   const dep=document.getElementById("f-dep").value;
-  window._lineaSeleccionada = null;
+  _depSel=null;
   if(dep){
-    fillSelect("f-op",      D.depOps[dep]      || [], "");
-    fillSelect("f-coord",   D.depCoords[dep]   || [], "");
-    fillSelect("f-cliente", D.depClientes[dep] || [], "");
-    fillSelect("f-dev",     D.depDevs[dep]     || [], "");
+    fillSelect("f-op",     D.depOps[dep]||[]);
+    fillSelect("f-coord",  D.depCoords[dep]||[]);
+    fillSelect("f-cliente",D.depClientes[dep]||[]);
+    fillSelect("f-dev",    D.depDevs[dep]||[]);
   } else {
-    fillSelect("f-op",      D.allOps, "");
-    fillSelect("f-coord",   D.allCoords, "");
-    fillSelect("f-cliente", D.allClientes, "");
-    fillSelect("f-dev",     D.allDevs, "");
+    fillSelect("f-op",     D.allOps);
+    fillSelect("f-coord",  D.allCoords);
+    fillSelect("f-cliente",D.allClientes);
+    fillSelect("f-dev",    D.allDevs);
   }
   aplicar();
 }
 
+function limpiarFiltroDep(){
+  document.getElementById("f-dep").value="";
+  _depSel=null;
+  fillSelect("f-op",D.allOps); fillSelect("f-coord",D.allCoords);
+  fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
+  document.getElementById("clear-dep").classList.remove("visible");
+  aplicar();
+}
+
+function limpiarFiltroTipo(){
+  document.getElementById("f-dev").value="";
+  document.getElementById("clear-tipo").classList.remove("visible");
+  aplicar();
+}
+
+function limpiarFiltroOp(){
+  document.getElementById("f-op").value="";
+  document.getElementById("clear-op").classList.remove("visible");
+  aplicar();
+}
+
+function limpiarFiltroFamilia(){
+  _familiaSel=null;
+  document.getElementById("f-familia").value="";
+  document.getElementById("clear-familia").classList.remove("visible");
+  aplicar();
+}
+
 function aplicar(){
+  if(!D)return;
   const anio=document.getElementById("f-anio").value;
   const mes=document.getElementById("f-mes").value;
   const cliente=document.getElementById("f-cliente").value;
+  const familia=document.getElementById("f-familia").value;
   const dep=document.getElementById("f-dep").value;
   const coord=document.getElementById("f-coord").value;
   const op=document.getElementById("f-op").value;
   const dev=document.getElementById("f-dev").value;
 
-  let b=[...D.base];
-  let fd=[...D.fallasData];
-  let dd=[...D.datosData];
+  // Actualizar botones de limpiar en filtros superiores
+  document.getElementById("clear-dep").classList.toggle("visible", !!dep||!!_depSel);
+  document.getElementById("clear-tipo").classList.toggle("visible", !!dev);
+  document.getElementById("clear-op").classList.toggle("visible", !!op);
+  document.getElementById("clear-familia").classList.toggle("visible", !!familia||!!_familiaSel);
 
+  // Guardar filtros para detalle de kilos
+  _filtrosActivos={anio,mes,cliente,familia,dep,coord,op,dev,depSel:_depSel,familiaSel:_familiaSel};
+
+  let b=[...D.base], fd=[...D.fallasData], dd=[...D.datosData];
   if(anio){b=b.filter(r=>r.Anio===anio);fd=fd.filter(r=>r.Anio===anio);dd=dd.filter(r=>r.Anio===anio);}
   if(mes){b=b.filter(r=>r.Mes===mes);fd=fd.filter(r=>r.Mes===mes);dd=dd.filter(r=>r.Mes===mes);}
   if(cliente){b=b.filter(r=>r.Cliente===cliente);fd=fd.filter(r=>r.Cliente===cliente);dd=dd.filter(r=>r.Cliente===cliente);}
+  if(familia){b=b.filter(r=>r.Familia===familia);fd=fd.filter(r=>r.Familia===familia);dd=dd.filter(r=>r.Familia===familia);}
   if(dep){b=b.filter(r=>r.DepResponsable===dep);fd=fd.filter(r=>r.DepResponsable===dep);dd=dd.filter(r=>r.DepResponsable===dep);}
   if(coord){b=b.filter(r=>r.CoordDatos===coord);fd=fd.filter(r=>r.CoordDatos===coord);}
   if(op){b=b.filter(r=>r.OpDatos===op);fd=fd.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
   if(dev){b=b.filter(r=>r.Desviacion===dev);fd=fd.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
-  if(dep && window._lineaSeleccionada){
-    b=b.filter(r=>r.Linea===window._lineaSeleccionada);
-    fd=fd.filter(r=>r.Linea===window._lineaSeleccionada);
-    dd=dd.filter(r=>r.Linea===window._lineaSeleccionada);
-  }
+  if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
+  if(_familiaSel){b=b.filter(r=>r.Descripcion===_familiaSel);}
 
-  // Kilos por mes (de RESPUESTAS: CantDetenido, Aceptado, Scrap)
+  const kf=r=>parseFloat(r.CantDetenido)||0;
+
+  // Grafica kilos por mes (TODOS los status)
   const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
-  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
-    det[m]+=parseFloat(r.CantDetenido)||0;
-    ace[m]+=parseFloat(r.Aceptado)||0;
-    rec[m]+=parseFloat(r.Scrap)||0;
-  }});
+  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=kf(r);ace[m]+=parseFloat(r.Aceptado)||0;rec[m]+=parseFloat(r.Scrap)||0;}});
   barSimple("cKilos",MESES,[
     {label:"Detenidos",data:det.map(v=>+v.toFixed(2)),backgroundColor:"#2a78d6",borderRadius:4},
     {label:"Aceptados",data:ace.map(v=>+v.toFixed(2)),backgroundColor:"#1baf7a",borderRadius:4},
     {label:"Rechazados",data:rec.map(v=>+v.toFixed(2)),backgroundColor:"#e34948",borderRadius:4}
   ]);
 
-  // Kilos por tipo desviacion (de FALLAS): oculta si hay filtro de tipo
+  // Kilos ACTUALES (solo Detenido) para las graficas
+  const bAct=b.filter(r=>r.Status==="Detenido");
+
+  // Grafica tipo desviacion: oculta si hay filtro
   const cardTipo=document.getElementById("card-tipo");
   if(dev){
     cardTipo.style.display="none";
@@ -298,132 +330,130 @@ function aplicar(){
       if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+k;
     });
     const ts=Object.entries(ct).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    barH("cTipo", ts.map(x=>x[0]), ts.map(x=>+x[1].toFixed(2)), "#2a78d6",
-      (valor)=>{ document.getElementById("f-dev").value=valor; aplicar(); },
-      dev
-    );
+    barH("cTipo",ts.map(x=>x[0]),ts.map(x=>+x[1].toFixed(2)),"#2a78d6",
+      (v)=>{document.getElementById("f-dev").value=v;document.getElementById("clear-tipo").classList.add("visible");aplicar();},dev);
   }
 
-  // Kilos por dep vs linea: si hay dep seleccionado, muestra linea y oculta dep
+  // Grafica dep vs linea (kilos actuales)
   const titleDep=document.getElementById("title-dep");
+  const clearDep=document.getElementById("clear-dep");
   if(dep){
-    titleDep.textContent="Kilos detenidos por línea — "+dep;
-    const cl={};b.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
+    titleDep.textContent="Kilos actuales por línea — "+dep;
+    clearDep.classList.add("visible");
+    const cl={};bAct.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+kf(r);});
     const ls=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    bar("cDep", ls.map(x=>x[0]), ls.map(x=>+x[1].toFixed(2)), "#eda100",
-      (valor)=>{ window._lineaSeleccionada = (window._lineaSeleccionada===valor) ? null : valor; aplicar(); },
-      window._lineaSeleccionada
-    );
+    bar("cDep",ls.map(x=>x[0]),ls.map(x=>+x[1].toFixed(2)),"#eda100",
+      (v)=>{_depSel=(_depSel===v)?null:v;aplicar();},_depSel);
   } else {
-    window._lineaSeleccionada = null;
-    titleDep.textContent="Kilos detenidos por departamento";
-    const cd={};b.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
+    titleDep.textContent="Kilos actuales por departamento";
+    const cd={};bAct.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+kf(r);});
     const ds=Object.entries(cd).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    bar("cDep", ds.map(x=>x[0]), ds.map(x=>+x[1].toFixed(2)), "#1a4a8a",
-      (valor)=>{ document.getElementById("f-dep").value=valor; onDepChange(); },
-      dep
-    );
+    bar("cDep",ds.map(x=>x[0]),ds.map(x=>+x[1].toFixed(2)),"#1a4a8a",
+      (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
   }
 
-  // Kilos por operador (de DATOS) top 10
+  // Grafica operador (kilos actuales)
   const co={};dd.forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
   const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  barH("cOp", os.map(x=>x[0]), os.map(x=>+x[1].toFixed(2)), "#4a3aa7",
-    (valor)=>{ document.getElementById("f-op").value=valor; aplicar(); },
-    op
-  );
+  barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#4a3aa7",
+    (v)=>{document.getElementById("f-op").value=v;document.getElementById("clear-op").classList.add("visible");aplicar();},op);
 
-  // Kilos por descripcion (de RESPUESTAS/base) top 10 — no es un filtro disponible, solo informativo (sin clic)
-  const cd2={};b.forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
-  const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  barH("cDesc", ds2.map(x=>x[0]), ds2.map(x=>+x[1].toFixed(2)), "#0e7490", null, null);
+  // Grafica familia / descripcion (kilos actuales)
+  const titleFam=document.getElementById("title-familia");
+  const clearFam=document.getElementById("clear-familia");
+  if(_familiaSel){
+    titleFam.textContent="Kilos actuales por descripción — "+_familiaSel;
+    clearFam.classList.add("visible");
+    const cd2={};bAct.filter(r=>r.Familia===(_familiaSel||r.Familia)).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+kf(r);});
+    const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
+      (v)=>{_familiaSel=(_familiaSel===v)?null:v;aplicar();},_familiaSel);
+  } else if(familia){
+    titleFam.textContent="Kilos actuales por descripción — "+familia;
+    clearFam.classList.add("visible");
+    const cd2={};bAct.filter(r=>r.Familia===familia).forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+kf(r);});
+    const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0e7490",
+      (v)=>{_familiaSel=v;aplicar();},null);
+  } else {
+    titleFam.textContent="Kilos actuales por familia";
+    const cf={};bAct.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+kf(r);});
+    const fs=Object.entries(cf).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    barH("cFamilia",fs.map(x=>x[0]),fs.map(x=>+x[1].toFixed(2)),"#0e7490",
+      (v)=>{_familiaSel=v;clearFam.classList.add("visible");aplicar();},null);
+  }
 
   // KPIs
-  const tDet=det.reduce((a,b)=>a+b,0),tAce=ace.reduce((a,b)=>a+b,0),tRec=rec.reduce((a,b)=>a+b,0);
+  const tDet=det.reduce((a,b)=>a+b,0);
+  const tAce=ace.reduce((a,b)=>a+b,0);
+  const tRec=rec.reduce((a,b)=>a+b,0);
+  const tAct=bAct.reduce((s,r)=>s+kf(r),0);
   const fmt=v=>v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById("kpi-det").textContent=fmt(tDet);
+  document.getElementById("kpi-det-total").textContent=fmt(tDet);
+  document.getElementById("kpi-det-actual").textContent=fmt(tAct);
   document.getElementById("kpi-ace").textContent=fmt(tAce);
   document.getElementById("kpi-rec").textContent=fmt(tRec);
   document.getElementById("sub-ace").textContent=(tDet>0?(tAce/tDet*100).toFixed(1):0)+"% del detenido";
   document.getElementById("sub-rec").textContent=(tDet>0?(tRec/tDet*100).toFixed(1):0)+"% del detenido";
-  const foliosUnicos=new Set(b.map(r=>r.Folio)).size;
-  document.getElementById("kpi-folios").textContent=foliosUnicos;
+  document.getElementById("kpi-folios").textContent=new Set(b.map(r=>r.Folio)).size;
 }
 
-function reset(){
-  window._lineaSeleccionada = null;
-  ["f-anio","f-mes","f-cliente","f-dep","f-coord","f-op","f-dev"]
-    .forEach(id=>document.getElementById(id).selectedIndex=0);
-  fillSelect("f-op", D.allOps, "");
-  fillSelect("f-coord", D.allCoords, "");
-  fillSelect("f-cliente", D.allClientes, "");
-  fillSelect("f-dev", D.allDevs, "");
-  const selAnio=document.getElementById("f-anio");
-  const selMes=document.getElementById("f-mes");
-  for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-  for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
-  aplicar();
+function irDetalleKilos(tipo){
+  sessionStorage.setItem("rmnc-filtros", JSON.stringify(_filtrosActivos));
+  window.location.href="detalle_kilos.html?tipo="+encodeURIComponent(tipo);
 }
 
 function buscarFolio(){
   const folio=document.getElementById("buscar-folio").value.trim();
-  if(folio){
-    window.location.href="detalle.html?folio="+encodeURIComponent(folio);
-  }
+  if(folio) window.location.href="detalle.html?folio="+encodeURIComponent(folio);
+}
+
+function reset(){
+  _depSel=null; _familiaSel=null;
+  ["f-anio","f-mes","f-cliente","f-familia","f-dep","f-coord","f-op","f-dev"].forEach(id=>document.getElementById(id).selectedIndex=0);
+  fillSelect("f-op",D.allOps); fillSelect("f-coord",D.allCoords);
+  fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
+  const selAnio=document.getElementById("f-anio");
+  for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
+  aplicar();
 }
 
 function toggleTheme(){
   const html=document.documentElement;
   const isDark=html.getAttribute("data-theme")==="dark";
-  html.setAttribute("data-theme", isDark?"light":"dark");
-  localStorage.setItem("rmnc-theme", isDark?"light":"dark");
-  document.getElementById("theme-btn").textContent = isDark? "Modo oscuro" : "Modo claro";
+  html.setAttribute("data-theme",isDark?"light":"dark");
+  localStorage.setItem("rmnc-theme",isDark?"light":"dark");
+  document.getElementById("theme-btn").textContent=isDark?"Modo oscuro":"Modo claro";
   aplicar();
 }
 
 (function(){
-  const saved=localStorage.getItem("rmnc-theme");
-  if(saved==="dark"){
-    document.documentElement.setAttribute("data-theme","dark");
-  }
+  if(localStorage.getItem("rmnc-theme")==="dark") document.documentElement.setAttribute("data-theme","dark");
 })();
 
 window.onload=async function(){
-  if(localStorage.getItem("rmnc-theme")==="dark"){
-    document.getElementById("theme-btn").textContent="Modo claro";
-  }
-
-  // Cargar datos desde JSON
-  try {
-    const resp = await fetch(JSON_URL + "?t=" + Date.now());
-    D = await resp.json();
-    MES_ACTUAL  = D.mesActual  || "";
-    ANIO_ACTUAL = D.anioActual || "";
-
-    // Rellenar filtros con opciones del JSON
-    function fillOpts(id, lista){
+  if(localStorage.getItem("rmnc-theme")==="dark") document.getElementById("theme-btn").textContent="Modo claro";
+  try{
+    const resp=await fetch(JSON_URL+"?t="+Date.now());
+    D=await resp.json();
+    MES_ACTUAL=D.mesActual||""; ANIO_ACTUAL=D.anioActual||"";
+    document.getElementById("fecha-upd").textContent="Actualizado: "+D.fechaActualizacion;
+    function fillOpts(id,lista){
       const sel=document.getElementById(id);
-      const cur=sel.value;
       const first=sel.options[0].outerHTML;
       sel.innerHTML=first;
-      lista.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});
+      lista.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
     }
-    fillOpts("f-anio",   D.filtros.anios);
-    fillOpts("f-dep",    D.filtros.deps);
-    fillOpts("f-dev",    D.filtros.devs);
-    fillOpts("f-cliente",D.filtros.clientes);
-    fillOpts("f-coord",  D.filtros.coords);
-    fillOpts("f-op",     D.filtros.ops);
-
-    // Poner año en curso
+    fillOpts("f-anio",D.filtros.anios); fillOpts("f-dep",D.filtros.deps);
+    fillOpts("f-dev",D.filtros.devs);   fillOpts("f-cliente",D.filtros.clientes);
+    fillOpts("f-coord",D.filtros.coords); fillOpts("f-op",D.filtros.ops);
+    fillOpts("f-familia",D.filtros.familias);
     const selAnio=document.getElementById("f-anio");
     for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-
     aplicar();
-
-  } catch(e) {
-    console.error("Error cargando datos:", e);
-    document.body.innerHTML += '<div style="color:red;padding:20px;font-size:14px;">Error al cargar datos.json. Verifica que el archivo exista en el repositorio.</div>';
+  } catch(e){
+    console.error("Error cargando datos:",e);
+    document.body.innerHTML+='<div style="color:red;padding:20px;font-size:14px;">Error al cargar datos.json.</div>';
   }
 };
 </script>
