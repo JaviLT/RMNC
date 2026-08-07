@@ -532,7 +532,7 @@ function renderFolios(){
   const statusCls={Detenido:"D",Aceptado:"A",Rechazado:"R"};
   grid.innerHTML=Object.entries(folioMap).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).map(([folio,status])=>{
     const cls=statusCls[status]||"D";
-    return '<button class="folio-chip folio-'+cls+'" onclick="irADetalle(''+folio+'')">'+folio+'</button>';
+    return '<button class="folio-chip folio-'+cls+'" onclick="irADetalle(this.dataset.folio)" data-folio="'+folio+'">'+folio+'</button>';
   }).join("");
   if(!grid.innerHTML) grid.innerHTML='<p style="color:var(--text-sub);font-size:13px">Sin folios para este departamento.</p>';
 }
