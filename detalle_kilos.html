@@ -27,9 +27,11 @@ tr:hover td{background:var(--kpibg)}
 .badge-D{background:#fef3c7;color:#92400e}
 .badge-A{background:#d1fae5;color:#065f46}
 .badge-R{background:#fee2e2;color:#991b1b}
+.badge-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
 [data-theme="dark"] .badge-D{background:#78350f;color:#fde68a}
 [data-theme="dark"] .badge-A{background:#064e3b;color:#a7f3d0}
 [data-theme="dark"] .badge-R{background:#7f1d1d;color:#fecaca}
+[data-theme="dark"] .badge-AR{background:linear-gradient(90deg,#064e3b 50%,#7f1d1d 50%);color:#fff}
 </style>
 </head>
 <body>
@@ -42,6 +44,12 @@ tr:hover td{background:var(--kpibg)}
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
   </div>
 </div>
+<div style="background:var(--kpibg);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <label style="font-size:11px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:.4px">Departamento:</label>
+  <select id="dk-dep" onchange="reRender()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);min-width:160px">
+    <option value="">Todos</option>
+  </select>
+</div>
 <div class="content" id="content"><p style="padding:40px;text-align:center">Cargando datos...</p></div>
 
 <script>
@@ -50,7 +58,7 @@ const TIPO_LABELS={"todos":"Kilos detenidos totales","Detenido":"Kilos detenidos
 
 function fmt(v){const n=parseFloat(v);return isNaN(n)?(v||"0"):n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});}
 function badgeStatus(s){
-  const cls={Detenido:"D",Aceptado:"A",Rechazado:"R"}[s]||"D";
+  const cls={Detenido:"D",Aceptado:"A",Rechazado:"R","A/R":"AR"}[s]||"D";
   return '<span class="badge badge-'+cls+'">'+s+'</span>';
 }
 
@@ -68,8 +76,18 @@ function render(D){
   const filtros=JSON.parse(sessionStorage.getItem("rmnc-filtros")||"{}");
   document.getElementById("page-title").textContent=TIPO_LABELS[tipo]||"Detalle";
 
+  // Poblar filtro de departamento
+  const selDep=document.getElementById("dk-dep");
+  if(selDep&&selDep.options.length<=1){
+    const deps=[...new Set(D.kilosDetalle.map(r=>r.DepResponsable).filter(Boolean))].sort();
+    deps.forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=d;selDep.appendChild(o);});
+  }
+
   let rows=[...D.kilosDetalle];
-  if(tipo!=="todos") rows=rows.filter(r=>r.Status===tipo);
+  // Filtrar A/R segun tipo
+  if(tipo==="Aceptado") rows=rows.filter(r=>r.Status==="Aceptado"||r.Status==="A/R");
+  else if(tipo==="Rechazado") rows=rows.filter(r=>r.Status==="Rechazado"||r.Status==="A/R");
+  else if(tipo!=="todos") rows=rows.filter(r=>r.Status===tipo);
 
   // Aplicar filtros guardados
   if(filtros.anio) rows=rows.filter(r=>parseFecha(r.Fecha).getFullYear()===parseInt(filtros.anio));
@@ -78,6 +96,9 @@ function render(D){
   if(filtros.familia) rows=rows.filter(r=>r.Familia===filtros.familia);
   if(filtros.dep)     rows=rows.filter(r=>r.DepResponsable===filtros.dep);
   if(filtros.dev)     rows=rows.filter(r=>r.Desviacion===filtros.dev);
+  // Filtro de departamento local
+  const depLocal=selDep?selDep.value:"";
+  if(depLocal) rows=rows.filter(r=>r.DepResponsable===depLocal);
 
   let totDet=0,totAce=0,totSc=0;
   rows.forEach(r=>{totDet+=parseFloat(r.CantDetenido)||0;totAce+=parseFloat(r.Aceptado)||0;totSc+=parseFloat(r.Scrap)||0;});
@@ -95,6 +116,8 @@ function render(D){
 }
 
 let _rowsCache=[];
+let _DK_DATA=null;
+function reRender(){ if(_DK_DATA) render(_DK_DATA); }
 
 async function exportarExcel(){
   if(!_rowsCache.length) return;
@@ -200,6 +223,7 @@ window.onload=async function(){
   try{
     const r=await fetch(JSON_URL+"?t="+Date.now());
     const D=await r.json();
+    _DK_DATA=D;
     render(D);
   } catch(e){
     document.getElementById("content").innerHTML='<p style="padding:40px;color:red;">Error al cargar datos.</p>';

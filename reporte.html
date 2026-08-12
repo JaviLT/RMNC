@@ -73,9 +73,11 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .folio-D{background:#fef3c7;color:#92400e}
 .folio-A{background:#d1fae5;color:#065f46}
 .folio-R{background:#fee2e2;color:#991b1b}
+.folio-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
 [data-theme="dark"] .folio-D{background:#78350f;color:#fde68a}
 [data-theme="dark"] .folio-A{background:#064e3b;color:#a7f3d0}
 [data-theme="dark"] .folio-R{background:#7f1d1d;color:#fecaca}
+[data-theme="dark"] .folio-AR{background:linear-gradient(90deg,#064e3b 50%,#7f1d1d 50%);color:#fff;border:1px solid #666}
 </style>
 </head>
 <body>
@@ -121,6 +123,11 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     <div class="kpi-value" id="kpi-det-actual">—</div>
     <div class="kpi-sub">Folios con status Detenido</div>
   </div>
+  <div class="kpi" id="kpi-cierre" style="display:none;border-left-color:#7c3aed">
+    <div class="kpi-label">Kilos detenidos a fin de mes</div>
+    <div class="kpi-value" id="kpi-cierre-val">—</div>
+    <div class="kpi-sub" id="kpi-cierre-sub">—</div>
+  </div>
   <div class="kpi ace" onclick="irDetalleKilos('Aceptado')">
     <div class="kpi-label">Kilos aceptados</div>
     <div class="kpi-value" id="kpi-ace">—</div>
@@ -145,15 +152,34 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
       <button class="modal-close" onclick="cerrarModal()">✕</button>
     </div>
     <div class="modal-filters">
+      <div class="fg"><label style="font-size:10px;color:var(--header);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Mes</label>
+        <select id="modal-mes" onchange="renderFolios()" style="font-size:12px;padding:5px 8px;border:1px solid var(--filterborder);border-radius:6px;background:var(--card);color:var(--text);min-width:110px">
+          <option value="">Todos</option>
+          <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+          <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+          <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </div>
+      <div class="fg"><label style="font-size:10px;color:var(--header);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Status</label>
+        <select id="modal-status" onchange="renderFolios()" style="font-size:12px;padding:5px 8px;border:1px solid var(--filterborder);border-radius:6px;background:var(--card);color:var(--text);min-width:130px">
+          <option value="">Todos</option>
+          <option value="Detenido">Detenido</option>
+          <option value="Aceptado">Aceptado</option>
+          <option value="Rechazado">Rechazado</option>
+          <option value="A/R">A/R</option>
+        </select>
+      </div>
       <div class="fg"><label style="font-size:10px;color:var(--header);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Departamento</label>
         <select id="modal-dep" onchange="renderFolios()" style="font-size:12px;padding:5px 8px;border:1px solid var(--filterborder);border-radius:6px;background:var(--card);color:var(--text);min-width:150px">
           <option value="">Todos</option>
         </select>
       </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <span style="font-size:11px;color:var(--text-sub);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:#fef3c7;border:1px solid #92400e"></span>Detenido</span>
-        <span style="font-size:11px;color:var(--text-sub);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:#d1fae5;border:1px solid #065f46"></span>Aceptado</span>
-        <span style="font-size:11px;color:var(--text-sub);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:#fee2e2;border:1px solid #991b1b"></span>Rechazado</span>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;font-size:11px;color:var(--text-sub)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#fef3c7;border:1px solid #92400e;display:inline-block"></span>Detenido</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#d1fae5;border:1px solid #065f46;display:inline-block"></span>Aceptado</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#fee2e2;border:1px solid #991b1b;display:inline-block"></span>Rechazado</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);border:1px solid #666;display:inline-block"></span>A/R</span>
       </div>
     </div>
     <div class="modal-body"><div class="folio-grid" id="folio-grid"></div></div>
@@ -205,6 +231,17 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
       </div>
       <div style="position:relative;width:100%;height:240px;"><canvas id="cFamilia"></canvas></div>
     </div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <div class="card-header">
+      <div class="card-title">Resumen anual — Kilos detenidos, aceptados y rechazados</div>
+    </div>
+    <div class="legend">
+      <span><span class="sq" style="background:#0D18A8"></span>Detenidos</span>
+      <span><span class="sq" style="background:#166534"></span>Aceptados</span>
+      <span><span class="sq" style="background:#991b1b"></span>Rechazados</span>
+    </div>
+    <div style="position:relative;width:100%;height:200px;"><canvas id="cAnual"></canvas></div>
   </div>
 </div>
 
@@ -393,18 +430,19 @@ function aplicar(){
   const cardTipo=document.getElementById("card-tipo");
   const titleTipo=document.getElementById("title-tipo");
   const clearTipo=document.getElementById("clear-tipo");
+  // Solo status Detenido para todas las graficas
+  const bDet=b.filter(r=>r.Status==="Detenido");
+
   if(dev){
-    // Mostrar kilos por departamento dentro de card-tipo
     titleTipo.textContent="Kilos detenidos por departamento (filtro: "+dev+")";
     clearTipo.classList.add("visible");
-    const cdT={};b.forEach(r=>{if(r.DepResponsable)cdT[r.DepResponsable]=(cdT[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
+    const cdT={};bDet.forEach(r=>{if(r.DepResponsable)cdT[r.DepResponsable]=(cdT[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
     const dsT=Object.entries(cdT).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cTipo",dsT.map(x=>x[0]),dsT.map(x=>+x[1].toFixed(2)),"#0D18A8",null,null);
   } else {
     titleTipo.textContent="Kilos detenidos por tipo de desviación";
     clearTipo.classList.remove("visible");
-    // Kilos desviacion: sumar CantDetenido de RESPUESTAS agrupado por Desviacion de FALLAS
-    const folioKilos={};b.forEach(r=>{folioKilos[r.Folio]=(folioKilos[r.Folio]||0)+(parseFloat(r.CantDetenido)||0);});
+    const folioKilos={};bDet.forEach(r=>{folioKilos[r.Folio]=(folioKilos[r.Folio]||0)+(parseFloat(r.CantDetenido)||0);});
     const ct={};fd.forEach(r=>{
       if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+(folioKilos[r.Folio]||0);
     });
@@ -419,13 +457,13 @@ function aplicar(){
   if(dep){
     titleDep.textContent="Kilos detenidos por línea — "+dep;
     clearDep.classList.add("visible");
-    const cl={};b.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
+    const cl={};bDet.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
     const ls=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ls.map(x=>x[0]),ls.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{_depSel=(_depSel===v)?null:v;aplicar();},_depSel);
   } else {
     titleDep.textContent="Kilos detenidos por departamento";
-    const cd={};b.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
+    const cd={};bDet.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds=Object.entries(cd).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ds.map(x=>x[0]),ds.map(x=>+x[1].toFixed(2)),null,
       (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
@@ -456,14 +494,14 @@ function aplicar(){
   if(familiaActiva){
     titleFam.textContent="Kilos detenidos por descripción — "+familiaActiva;
     clearFam.classList.add("visible");
-    const bFam=b.filter(r=>r.Familia===familiaActiva);
+    const bFam=bDet.filter(r=>r.Familia===familiaActiva);
     const cd2={};bFam.forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
     const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0D18A8",
       (v)=>{_descSel=(_descSel===v)?null:v;aplicar();},_descSel);
     // Filtrar grafica de departamento por familia activa (si no hay dep seleccionado)
     if(!dep){
-      const bFamDep=bFam.filter(r=>!_descSel||r.Descripcion===_descSel);
+      const bFamDep=bFam.filter(r=>r.Status==="Detenido"&&(!_descSel||r.Descripcion===_descSel));
       const cdF={};bFamDep.forEach(r=>{if(r.DepResponsable)cdF[r.DepResponsable]=(cdF[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
       const dsF=Object.entries(cdF).sort((a,b)=>b[1]-a[1]).slice(0,10);
       titleDep.textContent="Kilos detenidos por departamento — "+familiaActiva;
@@ -473,29 +511,85 @@ function aplicar(){
   } else {
     titleFam.textContent="Kilos detenidos por familia";
     _descSel=null;
-    const cf={};b.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+(parseFloat(r.CantDetenido)||0);});
+    const cf={};bDet.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+(parseFloat(r.CantDetenido)||0);});
     const fs=Object.entries(cf).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",fs.map(x=>x[0]),fs.map(x=>+x[1].toFixed(2)),"#0D18A8",
       (v)=>{_familiaSel=v;clearFam.classList.add("visible");aplicar();},null);
   }
 
   // KPIs
+  const fmt=v=>v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const MESES_CORTOS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  // Kilos detenidos totales (todos los status del filtro)
   const tDet=b.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+
+  // Kilos actuales: solo Detenido, SIN filtro de mes (usa D.base completo filtrado por todo excepto mes)
+  const bActGlobal=D.base.filter(r=>r.Status==="Detenido" && (!anio||r.Anio===anio) && (!cliente||r.Cliente===cliente) && (!familia||r.Familia===familia||r.Familia===_familiaSel) && (!dep||r.DepResponsable===dep) && (!coord||r.CoordDatos===coord) && (!op||r.OpDatos===op) && (!dev||r.Desviacion===dev));
+  const tAct=bActGlobal.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+
+  // Aceptados y Rechazados de FALLAS
   const tAce=fd.reduce((s,r)=>s+(parseFloat(r["Kilos Aceptados"])||0),0);
   const tRec=fd.reduce((s,r)=>s+(parseFloat(r["Kilos Rechazados"])||0),0);
-  const tAct=bAct.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
-  const fmt=v=>v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+
   document.getElementById("kpi-det-total").textContent=fmt(tDet);
   document.getElementById("kpi-det-actual").textContent=fmt(tAct);
   document.getElementById("kpi-ace").textContent=fmt(tAce);
   document.getElementById("kpi-rec").textContent=fmt(tRec);
-  document.getElementById("sub-ace").textContent=(tDet>0?(tAce/tDet*100).toFixed(1):0)+"% del detenido";
-  document.getElementById("sub-rec").textContent=(tDet>0?(tRec/tDet*100).toFixed(1):0)+"% del detenido";
+
+  // Sub texto: desglose mensual cuando mes=Todos, cierre mes anterior cuando hay mes
+  const mesSel=document.getElementById("f-mes").value;
+  if(!mesSel){
+    // Desglose por mes en sub-texto
+    const aceM=Array(12).fill(0), recM=Array(12).fill(0);
+    fd.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){aceM[m]+=parseFloat(r["Kilos Aceptados"])||0;recM[m]+=parseFloat(r["Kilos Rechazados"])||0;}});
+    const fmtS=v=>v>0?v.toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:0}):"";
+    const subAce=MESES_CORTOS.map((m,i)=>aceM[i]>0?m+":"+fmtS(aceM[i]):"").filter(Boolean).join(" | ");
+    const subRec=MESES_CORTOS.map((m,i)=>recM[i]>0?m+":"+fmtS(recM[i]):"").filter(Boolean).join(" | ");
+    document.getElementById("sub-ace").textContent=subAce||"Sin datos";
+    document.getElementById("sub-rec").textContent=subRec||"Sin datos";
+    // Ocultar KPI cierre mes
+    const kpiCierre=document.getElementById("kpi-cierre");
+    if(kpiCierre) kpiCierre.style.display="none";
+  } else {
+    // Mostrar KPI cierre del mes anterior
+    const mesN=parseInt(mesSel);
+    const anioN=parseInt(anio||ANIO_ACTUAL);
+    const mesPrev=mesN===1?12:mesN-1;
+    const anioPrev=mesN===1?anioN-1:anioN;
+    const cierre=D.cierresData&&D.cierresData.find(c=>c.Anio===anioPrev&&c.Mes===mesPrev);
+    const kpiCierre=document.getElementById("kpi-cierre");
+    if(kpiCierre){
+      kpiCierre.style.display="";
+      document.getElementById("kpi-cierre-val").textContent=cierre?fmt(cierre.KilosDetenidos):"—";
+      document.getElementById("kpi-cierre-sub").textContent=MESES_CORTOS[mesPrev-1]+" "+anioPrev;
+    }
+    document.getElementById("sub-ace").textContent=(tDet>0?(tAce/tDet*100).toFixed(1):0)+"% del detenido";
+    document.getElementById("sub-rec").textContent=(tDet>0?(tRec/tDet*100).toFixed(1):0)+"% del detenido";
+  }
+
   document.getElementById("kpi-folios").textContent=new Set(b.map(r=>r.Folio)).size;
+
+  // Grafica anual
+  const anioActN=parseInt(ANIO_ACTUAL);
+  const aniosAnual=[anioActN-2,anioActN-1,anioActN].map(String);
+  const detAnual=aniosAnual.map(a=>D.base.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0));
+  const aceAnual=aniosAnual.map(a=>D.fallasData.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r["Kilos Aceptados"])||0),0));
+  const recAnual=aniosAnual.map(a=>D.fallasData.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r["Kilos Rechazados"])||0),0));
+  const cA=document.getElementById("cAnual");
+  if(cA){
+    if(cA._ch)cA._ch.destroy();
+    cA._ch=new Chart(cA,{type:"bar",data:{labels:aniosAnual,datasets:[
+      {label:"Detenidos",data:detAnual.map(v=>+v.toFixed(2)),backgroundColor:"#0D18A8",borderRadius:4},
+      {label:"Aceptados",data:aceAnual.map(v=>+v.toFixed(2)),backgroundColor:"#166534",borderRadius:4},
+      {label:"Rechazados",data:recAnual.map(v=>+v.toFixed(2)),backgroundColor:"#991b1b",borderRadius:4}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:gridColor()}},y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX")}}}
+    }});
+  }
 }
 
 function irDetalleKilos(tipo){
-  if(tipo!=="todos") return;
   sessionStorage.setItem("rmnc-filtros", JSON.stringify(_filtrosActivos));
   window.location.href="detalle_kilos.html?tipo="+encodeURIComponent(tipo);
 }
@@ -512,6 +606,10 @@ function abrirModalFolios(){
   sel.innerHTML='<option value="">Todos</option>';
   const deps=[...new Set(D.base.map(r=>r.DepResponsable).filter(Boolean))].sort();
   deps.forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=d;sel.appendChild(o);});
+  // Poner mes actual por defecto
+  const selMes=document.getElementById("modal-mes");
+  for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
+  document.getElementById("modal-status").value="";
   renderFolios();
   document.getElementById("modal-folios").classList.add("open");
 }
@@ -523,18 +621,22 @@ function cerrarModal(){
 function renderFolios(){
   if(!D) return;
   const dep=document.getElementById("modal-dep").value;
+  const mes=document.getElementById("modal-mes").value;
+  const status=document.getElementById("modal-status").value;
   let rows=[...D.base];
   if(dep) rows=rows.filter(r=>r.DepResponsable===dep);
+  if(mes) rows=rows.filter(r=>r.Mes===mes);
+  if(status) rows=rows.filter(r=>r.Status===status);
   // Deduplicar por folio tomando el primer status
   const folioMap={};
   rows.forEach(r=>{if(!folioMap[r.Folio])folioMap[r.Folio]=r.Status;});
   const grid=document.getElementById("folio-grid");
-  const statusCls={Detenido:"D",Aceptado:"A",Rechazado:"R"};
+  const statusCls={Detenido:"D",Aceptado:"A",Rechazado:"R","A/R":"AR"};
   grid.innerHTML=Object.entries(folioMap).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).map(([folio,status])=>{
     const cls=statusCls[status]||"D";
     return '<button class="folio-chip folio-'+cls+'" onclick="irADetalle(this.dataset.folio)" data-folio="'+folio+'">'+folio+'</button>';
   }).join("");
-  if(!grid.innerHTML) grid.innerHTML='<p style="color:var(--text-sub);font-size:13px">Sin folios para este departamento.</p>';
+  if(!grid.innerHTML) grid.innerHTML='<p style="color:var(--text-sub);font-size:13px">Sin folios para este filtro.</p>';
 }
 
 function irADetalle(folio){
@@ -548,9 +650,8 @@ function reset(){
   fillSelect("f-op",D.allOps); fillSelect("f-coord",D.allCoords);
   fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
   const selAnio=document.getElementById("f-anio");
-  const selMes=document.getElementById("f-mes");
   for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-  for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
+  document.getElementById("f-mes").selectedIndex=0;
   aplicar();
 }
 
@@ -594,9 +695,9 @@ window.onload=async function(){
     fillOpts("f-coord",D.filtros.coords); fillOpts("f-op",D.filtros.ops);
     fillOpts("f-familia",D.filtros.familias);
     const selAnio=document.getElementById("f-anio");
-    const selMes=document.getElementById("f-mes");
     for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-    for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
+    // Mes siempre en Todos al cargar
+    document.getElementById("f-mes").selectedIndex=0;
     aplicar();
   } catch(e){
     console.error("Error cargando datos:",e);

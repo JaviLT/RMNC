@@ -30,9 +30,11 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .status-Detenido{background:#fef3c7;color:#92400e}
 .status-Aceptado{background:#d1fae5;color:#065f46}
 .status-Rechazado{background:#fee2e2;color:#991b1b}
+.status-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
 [data-theme="dark"] .status-Detenido{background:#78350f;color:#fde68a}
 [data-theme="dark"] .status-Aceptado{background:#064e3b;color:#a7f3d0}
 [data-theme="dark"] .status-Rechazado{background:#7f1d1d;color:#fecaca}
+[data-theme="dark"] .status-AR{background:linear-gradient(90deg,#064e3b 50%,#7f1d1d 50%);color:#fff}
 </style>
 </head>
 <body>
@@ -76,19 +78,21 @@ function render(){
   const datosFolio=DETALLE.datos.filter(d=>String(d.Folio)===String(folio));
   html+='<div class="card"><div class="card-title">Detalle de piezas / lotes</div>';
   if(datosFolio.length>0){
-    html+='<table class="datos-table"><thead><tr><th>Cajas</th><th>IDs</th><th>Lote</th><th>Coordinador</th><th>Operador</th><th>Piezas detenidas</th><th>Kilos detenidos</th>';
+    html+='<table class="datos-table"><thead><tr><th>Cajas</th><th>IDs</th><th>Lote</th><th>Coordinador</th><th>Operador</th><th>Piezas detenidas</th><th>Kilos detenidos</th><th>Piezas rechazadas</th><th>Kilos rechazados</th>';
     if(status!=="Detenido") html+='<th>Piezas aceptadas</th><th>Kilos aceptados</th>';
     html+='</tr></thead><tbody>';
-    let totP=0,totK=0,totPF=0,totKF=0;
+    let totP=0,totK=0,totPF=0,totKF=0,totPR=0,totKR=0;
     datosFolio.forEach(d=>{
       totP+=parseFloat(d.Piezas)||0; totK+=parseFloat(d.Kilos)||0;
       totPF+=parseFloat(d.PiezasFinales)||0; totKF+=parseFloat((d.KgFinales||"").toString().replace(",",""))||0;
+      const pRec=parseFloat(d.PzScrap)||0; const kRec=parseFloat(d.Scrap)||0;
+      totPR+=pRec; totKR+=kRec;
       html+='<tr><td>'+(d.Cajas||"—")+'</td><td>'+(d.IDs||"—")+'</td><td>'+(d.Lote||"—")+'</td><td>'+(d.Coordinador||"—")+'</td><td>'+(d.Operador||"—")+'</td>';
-      html+='<td>'+fmtNum(d.Piezas)+'</td><td>'+fmtNum(d.Kilos)+'</td>';
+      html+='<td>'+fmtNum(d.Piezas)+'</td><td>'+fmtNum(d.Kilos)+'</td><td>'+fmtNum(pRec)+'</td><td>'+fmtNum(kRec)+'</td>';
       if(status!=="Detenido") html+='<td>'+fmtNum(d.PiezasFinales)+'</td><td>'+fmtNum((d.KgFinales||"").toString().replace(",",""))+'</td>';
       html+='</tr>';
     });
-    html+='<tr class="totales-row"><td colspan="5">TOTAL</td><td>'+fmtNum(totP)+'</td><td>'+fmtNum(totK)+'</td>';
+    html+='<tr class="totales-row"><td colspan="5">TOTAL</td><td>'+fmtNum(totP)+'</td><td>'+fmtNum(totK)+'</td><td>'+fmtNum(totPR)+'</td><td>'+fmtNum(totKR)+'</td>';
     if(status!=="Detenido") html+='<td>'+fmtNum(totPF)+'</td><td>'+fmtNum(totKF)+'</td>';
     html+='</tr></tbody></table>';
   } else html+='<div class="not-found">Sin registros de detalle para este folio.</div>';
@@ -99,11 +103,10 @@ function render(){
   html+=field("¿Requiere retrabajo?",resp.Retrabajo)+field("Comentario",resp.Comentario);
   html+='</div></div>';
 
-  if(status!=="Detenido"){
-    html+='<div class="card"><div class="card-title">Cierre del caso</div><div class="field-grid">';
-    html+=field("Fecha de dictamen",resp.FechaCierre)+field("Auditor",resp.AuditorSeg)+field("Disposición",resp.Disposicion);
-    html+='</div></div>';
-  }
+  // Cierre del caso: siempre visible (aunque esté vacío para Detenido)
+  html+='<div class="card"><div class="card-title">Cierre del caso</div><div class="field-grid">';
+  html+=field("Fecha de dictamen",resp.FechaCierre||"—")+field("Auditor",resp.AuditorSeg||"—")+field("Disposición",resp.Disposicion||"—");
+  html+='</div></div>';
   content.innerHTML=html;
 }
 
