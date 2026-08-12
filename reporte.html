@@ -113,7 +113,7 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 </div>
 
 <div class="kpi-row">
-  <div class="kpi" onclick="irDetalleKilos('todos')">
+  <div class="kpi" id="kpi-total-card" onclick="irDetalleKilos('todos')">
     <div class="kpi-label">Kilos detenidos totales</div>
     <div class="kpi-value" id="kpi-det-total">—</div>
     <div class="kpi-sub">Clic para ver detalle</div>
@@ -121,7 +121,7 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
   <div class="kpi det-actual" onclick="irDetalleKilos('Detenido')">
     <div class="kpi-label">Kilos detenidos actuales</div>
     <div class="kpi-value" id="kpi-det-actual">—</div>
-    <div class="kpi-sub">Folios con status Detenido</div>
+    <div class="kpi-sub" id="sub-act">Clic para ver detalle</div>
   </div>
   <div class="kpi" id="kpi-cierre" style="display:none;border-left-color:#7c3aed">
     <div class="kpi-label">Kilos detenidos a fin de mes</div>
@@ -437,7 +437,7 @@ function aplicar(){
     titleTipo.textContent="Kilos detenidos por departamento (filtro: "+dev+")";
     clearTipo.classList.add("visible");
     const cdT={};bDet.forEach(r=>{if(r.DepResponsable)cdT[r.DepResponsable]=(cdT[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
-    const dsT=Object.entries(cdT).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const dsT=Object.entries(cdT).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cTipo",dsT.map(x=>x[0]),dsT.map(x=>+x[1].toFixed(2)),"#0D18A8",null,null);
   } else {
     titleTipo.textContent="Kilos detenidos por tipo de desviación";
@@ -446,7 +446,7 @@ function aplicar(){
     const ct={};fd.forEach(r=>{
       if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+(folioKilos[r.Folio]||0);
     });
-    const ts=Object.entries(ct).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const ts=Object.entries(ct).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cTipo",ts.map(x=>x[0]),ts.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{document.getElementById("f-dev").value=v;clearTipo.classList.add("visible");aplicar();},null);
   }
@@ -458,13 +458,13 @@ function aplicar(){
     titleDep.textContent="Kilos detenidos por línea — "+dep;
     clearDep.classList.add("visible");
     const cl={};bDet.forEach(r=>{if(r.Linea)cl[r.Linea]=(cl[r.Linea]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ls=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const ls=Object.entries(cl).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ls.map(x=>x[0]),ls.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{_depSel=(_depSel===v)?null:v;aplicar();},_depSel);
   } else {
     titleDep.textContent="Kilos detenidos por departamento";
     const cd={};bDet.forEach(r=>{if(r.DepResponsable)cd[r.DepResponsable]=(cd[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ds=Object.entries(cd).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const ds=Object.entries(cd).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     bar("cDep",ds.map(x=>x[0]),ds.map(x=>+x[1].toFixed(2)),null,
       (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
   }
@@ -476,13 +476,13 @@ function aplicar(){
     if(titleOp) titleOp.textContent="Kilos detenidos por operador — "+coord;
     clearOp.classList.add("visible");
     const co={};dd.filter(r=>r.Coordinador===coord).forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
-    const os=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const os=Object.entries(co).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{document.getElementById("f-op").value=v;aplicar();},op);
   } else {
     if(titleOp) titleOp.textContent="Kilos detenidos por coordinador";
     const cc={};dd.forEach(r=>{if(r.Coordinador)cc[r.Coordinador]=(cc[r.Coordinador]||0)+(parseFloat(r.Kilos)||0);});
-    const cs=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const cs=Object.entries(cc).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cOp",cs.map(x=>x[0]),cs.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{document.getElementById("f-coord").value=v;clearOp.classList.add("visible");aplicar();},coord);
   }
@@ -496,14 +496,14 @@ function aplicar(){
     clearFam.classList.add("visible");
     const bFam=bDet.filter(r=>r.Familia===familiaActiva);
     const cd2={};bFam.forEach(r=>{if(r.Descripcion)cd2[r.Descripcion]=(cd2[r.Descripcion]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ds2=Object.entries(cd2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const ds2=Object.entries(cd2).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",ds2.map(x=>x[0]),ds2.map(x=>+x[1].toFixed(2)),"#0D18A8",
       (v)=>{_descSel=(_descSel===v)?null:v;aplicar();},_descSel);
     // Filtrar grafica de departamento por familia activa (si no hay dep seleccionado)
     if(!dep){
       const bFamDep=bFam.filter(r=>r.Status==="Detenido"&&(!_descSel||r.Descripcion===_descSel));
       const cdF={};bFamDep.forEach(r=>{if(r.DepResponsable)cdF[r.DepResponsable]=(cdF[r.DepResponsable]||0)+(parseFloat(r.CantDetenido)||0);});
-      const dsF=Object.entries(cdF).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const dsF=Object.entries(cdF).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
       titleDep.textContent="Kilos detenidos por departamento — "+familiaActiva;
       bar("cDep",dsF.map(x=>x[0]),dsF.map(x=>+x[1].toFixed(2)),null,
         (v)=>{document.getElementById("f-dep").value=v;onDepChange();},dep);
@@ -512,7 +512,7 @@ function aplicar(){
     titleFam.textContent="Kilos detenidos por familia";
     _descSel=null;
     const cf={};bDet.forEach(r=>{if(r.Familia)cf[r.Familia]=(cf[r.Familia]||0)+(parseFloat(r.CantDetenido)||0);});
-    const fs=Object.entries(cf).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const fs=Object.entries(cf).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cFamilia",fs.map(x=>x[0]),fs.map(x=>+x[1].toFixed(2)),"#0D18A8",
       (v)=>{_familiaSel=v;clearFam.classList.add("visible");aplicar();},null);
   }
@@ -537,35 +537,42 @@ function aplicar(){
   document.getElementById("kpi-ace").textContent=fmt(tAce);
   document.getElementById("kpi-rec").textContent=fmt(tRec);
 
-  // Sub texto: desglose mensual cuando mes=Todos, cierre mes anterior cuando hay mes
+  // Sub textos y visibilidad segun filtro de mes
   const mesSel=document.getElementById("f-mes").value;
+  const kpiTotalCard=document.getElementById("kpi-total-card");
+  const kpiCierre=document.getElementById("kpi-cierre");
+  const fmtS=v=>v.toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:0});
+
   if(!mesSel){
-    // Desglose por mes en sub-texto
-    const aceM=Array(12).fill(0), recM=Array(12).fill(0);
-    fd.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){aceM[m]+=parseFloat(r["Kilos Aceptados"])||0;recM[m]+=parseFloat(r["Kilos Rechazados"])||0;}});
-    const fmtS=v=>v>0?v.toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:0}):"";
-    const subAce=MESES_CORTOS.map((m,i)=>aceM[i]>0?m+":"+fmtS(aceM[i]):"").filter(Boolean).join(" | ");
-    const subRec=MESES_CORTOS.map((m,i)=>recM[i]>0?m+":"+fmtS(recM[i]):"").filter(Boolean).join(" | ");
-    document.getElementById("sub-ace").textContent=subAce||"Sin datos";
-    document.getElementById("sub-rec").textContent=subRec||"Sin datos";
-    // Ocultar KPI cierre mes
-    const kpiCierre=document.getElementById("kpi-cierre");
+    // Mes = Todos: mostrar KPI totales, ocultar cierre, desglose mensual en los 3 KPIs
+    if(kpiTotalCard) kpiTotalCard.style.display="";
     if(kpiCierre) kpiCierre.style.display="none";
+
+    const detM=Array(12).fill(0), aceM=Array(12).fill(0), recM=Array(12).fill(0);
+    bActGlobal.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12)detM[m]+=parseFloat(r.CantDetenido)||0;});
+    fd.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){aceM[m]+=parseFloat(r["Kilos Aceptados"])||0;recM[m]+=parseFloat(r["Kilos Rechazados"])||0;}});
+
+    const linea=arr=>MESES_CORTOS.map((m,i)=>arr[i]>0?m+":"+fmtS(arr[i]):"").filter(Boolean).join(" | ");
+    document.getElementById("sub-act").textContent=linea(detM)||"Sin datos";
+    document.getElementById("sub-ace").textContent=linea(aceM)||"Sin datos";
+    document.getElementById("sub-rec").textContent=linea(recM)||"Sin datos";
   } else {
-    // Mostrar KPI cierre del mes anterior
+    // Mes seleccionado: ocultar KPI totales, mostrar cierre del mes anterior
+    if(kpiTotalCard) kpiTotalCard.style.display="none";
+
     const mesN=parseInt(mesSel);
     const anioN=parseInt(anio||ANIO_ACTUAL);
     const mesPrev=mesN===1?12:mesN-1;
     const anioPrev=mesN===1?anioN-1:anioN;
-    const cierre=D.cierresData&&D.cierresData.find(c=>c.Anio===anioPrev&&c.Mes===mesPrev);
-    const kpiCierre=document.getElementById("kpi-cierre");
+    const cierre=D.cierresData&&D.cierresData.find(c=>parseInt(c.Anio)===anioPrev&&parseInt(c.Mes)===mesPrev);
     if(kpiCierre){
       kpiCierre.style.display="";
-      document.getElementById("kpi-cierre-val").textContent=cierre?fmt(cierre.KilosDetenidos):"—";
+      document.getElementById("kpi-cierre-val").textContent=cierre?fmt(parseFloat(cierre.KilosDetenidos)):"—";
       document.getElementById("kpi-cierre-sub").textContent=MESES_CORTOS[mesPrev-1]+" "+anioPrev;
     }
-    document.getElementById("sub-ace").textContent=(tDet>0?(tAce/tDet*100).toFixed(1):0)+"% del detenido";
-    document.getElementById("sub-rec").textContent=(tDet>0?(tRec/tDet*100).toFixed(1):0)+"% del detenido";
+    document.getElementById("sub-act").textContent="Clic para ver detalle";
+    document.getElementById("sub-ace").textContent="Clic para ver detalle";
+    document.getElementById("sub-rec").textContent="Clic para ver detalle";
   }
 
   document.getElementById("kpi-folios").textContent=new Set(b.map(r=>r.Folio)).size;
@@ -651,7 +658,8 @@ function reset(){
   fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
   const selAnio=document.getElementById("f-anio");
   for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-  document.getElementById("f-mes").selectedIndex=0;
+  const selMesR=document.getElementById("f-mes");
+  for(let i=0;i<selMesR.options.length;i++){if(selMesR.options[i].value===MES_ACTUAL){selMesR.selectedIndex=i;break;}}
   aplicar();
 }
 
@@ -696,8 +704,8 @@ window.onload=async function(){
     fillOpts("f-familia",D.filtros.familias);
     const selAnio=document.getElementById("f-anio");
     for(let i=0;i<selAnio.options.length;i++){if(selAnio.options[i].value===ANIO_ACTUAL){selAnio.selectedIndex=i;break;}}
-    // Mes siempre en Todos al cargar
-    document.getElementById("f-mes").selectedIndex=0;
+    const selMes=document.getElementById("f-mes");
+    for(let i=0;i<selMes.options.length;i++){if(selMes.options[i].value===MES_ACTUAL){selMes.selectedIndex=i;break;}}
     aplicar();
   } catch(e){
     console.error("Error cargando datos:",e);
