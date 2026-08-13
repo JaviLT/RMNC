@@ -28,6 +28,19 @@ tr:hover td{background:var(--kpibg)}
 .badge-A{background:#d1fae5;color:#065f46}
 .badge-R{background:#fee2e2;color:#991b1b}
 .badge-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
+.help-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:background .15s}
+.help-btn:hover{background:rgba(255,255,255,.28)}
+.help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:16px}
+.help-overlay.open{display:flex}
+.help-modal{background:var(--card);border-radius:12px;padding:22px;width:100%;max-width:620px;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.help-modal h3{font-size:16px;color:var(--header);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+[data-theme="dark"] .help-modal h3{color:#7fb0e8}
+.help-modal h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:16px 0 6px}
+.help-modal p, .help-modal li{font-size:13px;color:var(--text);line-height:1.55}
+.help-modal ul{padding-left:18px;margin:4px 0}
+.help-modal li{margin-bottom:5px}
+.help-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);padding:0 4px}
+
 [data-theme="dark"] .badge-D{background:#78350f;color:#fde68a}
 [data-theme="dark"] .badge-A{background:#064e3b;color:#a7f3d0}
 [data-theme="dark"] .badge-R{background:#7f1d1d;color:#fecaca}
@@ -42,12 +55,48 @@ tr:hover td{background:var(--kpibg)}
     <button class="back-btn" onclick="exportarExcel()" id="btn-excel" style="display:none">⬇ Exportar Excel</button>
     <button class="back-btn" onclick="window.location.href='reporte.html'">← Volver</button>
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
+    <button class="help-btn" onclick="abrirAyuda()" title="¿Cómo funciona esta pantalla?">?</button>
+  </div>
+</div>
+
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this)cerrarAyuda()">
+  <div class="help-modal">
+    <h3>Detalle de kilos <button class="help-close" onclick="cerrarAyuda()">✕</button></h3>
+    <p>Aquí se lista folio por folio el material que forma el indicador que abriste en el reporte.</p>
+    <h4>Qué estás viendo</h4>
+    <ul>
+      <li>El título indica de qué indicador vienen los datos y cuántos registros hay.</li>
+      <li>Se conservan los filtros que tenías puestos en el reporte, salvo en <b>Kilos detenidos actuales</b>, donde se muestran todos los folios detenidos sin importar la fecha.</li>
+      <li>Los indicadores de aceptados y rechazados incluyen también los folios <b>A/R</b>, donde una parte se aceptó y otra se rechazó.</li>
+    </ul>
+    <h4>Filtros de esta pantalla</h4>
+    <ul>
+      <li><b>Departamento</b> y <b>Mes</b> acotan la tabla sin modificar el reporte.</li>
+      <li>La fila de TOTAL al final siempre refleja lo que está visible en pantalla.</li>
+    </ul>
+    <h4>Exportar</h4>
+    <p><b>Exportar Excel</b> descarga exactamente los registros filtrados, con el formato institucional y la fila de totales incluida.</p>
+    <h4>Colores de estatus</h4>
+    <ul>
+      <li><span class="badge badge-D">Detenido</span> en espera de dictamen.</li>
+      <li><span class="badge badge-A">Aceptado</span> liberado para uso.</li>
+      <li><span class="badge badge-R">Rechazado</span> enviado a scrap.</li>
+      <li><span class="badge badge-AR">A/R</span> dictamen mixto: parte aceptada y parte rechazada.</li>
+    </ul>
   </div>
 </div>
 <div style="background:var(--kpibg);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <label style="font-size:11px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:.4px">Departamento:</label>
   <select id="dk-dep" onchange="reRender()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);min-width:160px">
     <option value="">Todos</option>
+  </select>
+  <label style="font-size:11px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:.4px;margin-left:8px">Mes:</label>
+  <select id="dk-mes" onchange="reRender()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);min-width:120px">
+    <option value="">Todos</option>
+    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
   </select>
 </div>
 <div class="content" id="content"><p style="padding:40px;text-align:center">Cargando datos...</p></div>
@@ -96,9 +145,12 @@ function render(D){
   if(filtros.familia) rows=rows.filter(r=>r.Familia===filtros.familia);
   if(filtros.dep)     rows=rows.filter(r=>r.DepResponsable===filtros.dep);
   if(filtros.dev)     rows=rows.filter(r=>r.Desviacion===filtros.dev);
-  // Filtro de departamento local
+  // Filtros locales de la pantalla
   const depLocal=selDep?selDep.value:"";
   if(depLocal) rows=rows.filter(r=>r.DepResponsable===depLocal);
+  const selMesDk=document.getElementById("dk-mes");
+  const mesLocal=selMesDk?selMesDk.value:"";
+  if(mesLocal) rows=rows.filter(r=>(parseFecha(r.Fecha).getMonth()+1)===parseInt(mesLocal));
 
   let totDet=0,totAce=0,totSc=0;
   rows.forEach(r=>{totDet+=parseFloat(r.CantDetenido)||0;totAce+=parseFloat(r.Aceptado)||0;totSc+=parseFloat(r.Scrap)||0;});
@@ -114,6 +166,10 @@ function render(D){
   document.getElementById("btn-excel").style.display=rows.length?"":"none";
   document.getElementById("content").innerHTML=html;
 }
+
+function abrirAyuda(){ document.getElementById("help-overlay").classList.add("open"); }
+function cerrarAyuda(){ document.getElementById("help-overlay").classList.remove("open"); }
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});
 
 let _rowsCache=[];
 let _DK_DATA=null;

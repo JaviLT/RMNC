@@ -58,6 +58,19 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .legend{display:flex;gap:12px;font-size:11px;color:var(--text-sub);margin-bottom:8px;flex-wrap:wrap}
 .legend span{display:flex;align-items:center;gap:4px}
 .sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
+.help-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:background .15s}
+.help-btn:hover{background:rgba(255,255,255,.28)}
+.help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:16px}
+.help-overlay.open{display:flex}
+.help-modal{background:var(--card);border-radius:12px;padding:22px;width:100%;max-width:620px;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.help-modal h3{font-size:16px;color:var(--header);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+[data-theme="dark"] .help-modal h3{color:#7fb0e8}
+.help-modal h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:16px 0 6px}
+.help-modal p, .help-modal li{font-size:13px;color:var(--text);line-height:1.55}
+.help-modal ul{padding-left:18px;margin:4px 0}
+.help-modal li{margin-bottom:5px}
+.help-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);padding:0 4px}
+
 /* Modal folios */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
@@ -91,6 +104,37 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
       <button onclick="buscarFolio()">Buscar</button>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
+    <button class="help-btn" onclick="abrirAyuda()" title="¿Cómo funciona este reporte?">?</button>
+  </div>
+</div>
+
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this)cerrarAyuda()">
+  <div class="help-modal">
+    <h3>Cómo usar el reporte <button class="help-close" onclick="cerrarAyuda()">✕</button></h3>
+    <p>Este reporte resume las detenciones de calidad del área RMNC. Los datos se actualizan automáticamente cada media hora.</p>
+    <h4>Filtros</h4>
+    <ul>
+      <li>Se aplican a todos los indicadores y gráficas al mismo tiempo.</li>
+      <li>Al elegir un <b>departamento</b>, las listas de coordinador, operador, cliente y desviación se limitan a ese departamento.</li>
+      <li><b>Limpiar filtros</b> regresa al mes y año actuales.</li>
+    </ul>
+    <h4>Indicadores</h4>
+    <ul>
+      <li><b>Kilos detenidos totales:</b> suma de todo lo detenido en el periodo filtrado, sin importar cómo se dictaminó. Solo aparece cuando el mes está en "Todos".</li>
+      <li><b>Kilos detenidos actuales:</b> material que sigue detenido hoy, en espera de dictamen. Al abrirlo se muestran todos los folios detenidos sin importar la fecha.</li>
+      <li><b>Kilos detenidos a fin de mes:</b> foto del material detenido al cierre del mes anterior. Este número ya no cambia.</li>
+      <li><b>Kilos aceptados / rechazados:</b> resultado del dictamen. Con el mes en "Todos" cada indicador muestra su desglose mes por mes.</li>
+      <li>Al hacer clic en cualquier indicador se abre el detalle por folio.</li>
+    </ul>
+    <h4>Gráficas</h4>
+    <ul>
+      <li>Todas consideran únicamente el material con estatus Detenido.</li>
+      <li>Al hacer clic en una barra se filtra el reporte por ese valor; el botón <b>Limpiar</b> de cada gráfica lo quita.</li>
+      <li>Departamento y familia bajan un nivel al hacer clic: muestran líneas y descripciones de producto.</li>
+      <li>La gráfica anual del final compara el año en curso contra los dos anteriores.</li>
+    </ul>
+    <h4>Buscar un folio</h4>
+    <p>Escribe el número en la caja de búsqueda del encabezado, o abre el indicador de <b>Folios totales</b> para verlos todos por color según su estatus.</p>
   </div>
 </div>
 
@@ -597,7 +641,10 @@ function aplicar(){
 }
 
 function irDetalleKilos(tipo){
-  sessionStorage.setItem("rmnc-filtros", JSON.stringify(_filtrosActivos));
+  // Kilos detenidos actuales: sin filtro de fecha, muestra todos los Detenido
+  const f=Object.assign({},_filtrosActivos);
+  if(tipo==="Detenido"){ delete f.anio; delete f.mes; }
+  sessionStorage.setItem("rmnc-filtros", JSON.stringify(f));
   window.location.href="detalle_kilos.html?tipo="+encodeURIComponent(tipo);
 }
 
@@ -605,6 +652,10 @@ function buscarFolio(){
   const folio=document.getElementById("buscar-folio").value.trim();
   if(folio) window.location.href="detalle.html?folio="+encodeURIComponent(folio);
 }
+
+function abrirAyuda(){ document.getElementById("help-overlay").classList.add("open"); }
+function cerrarAyuda(){ document.getElementById("help-overlay").classList.remove("open"); }
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});
 
 function abrirModalFolios(){
   if(!D) return;

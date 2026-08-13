@@ -31,6 +31,19 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .status-Aceptado{background:#d1fae5;color:#065f46}
 .status-Rechazado{background:#fee2e2;color:#991b1b}
 .status-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
+.help-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:background .15s}
+.help-btn:hover{background:rgba(255,255,255,.28)}
+.help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:16px}
+.help-overlay.open{display:flex}
+.help-modal{background:var(--card);border-radius:12px;padding:22px;width:100%;max-width:620px;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.help-modal h3{font-size:16px;color:var(--header);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+[data-theme="dark"] .help-modal h3{color:#7fb0e8}
+.help-modal h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:16px 0 6px}
+.help-modal p, .help-modal li{font-size:13px;color:var(--text);line-height:1.55}
+.help-modal ul{padding-left:18px;margin:4px 0}
+.help-modal li{margin-bottom:5px}
+.help-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);padding:0 4px}
+
 [data-theme="dark"] .status-Detenido{background:#78350f;color:#fde68a}
 [data-theme="dark"] .status-Aceptado{background:#064e3b;color:#a7f3d0}
 [data-theme="dark"] .status-Rechazado{background:#7f1d1d;color:#fecaca}
@@ -44,6 +57,29 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
   <div class="header-right">
     <button class="back-btn" onclick="window.location.href='reporte.html'">← Volver al reporte</button>
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
+    <button class="help-btn" onclick="abrirAyuda()" title="¿Cómo funciona esta pantalla?">?</button>
+  </div>
+</div>
+
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this)cerrarAyuda()">
+  <div class="help-modal">
+    <h3>Detalle de folio <button class="help-close" onclick="cerrarAyuda()">✕</button></h3>
+    <p>Muestra el expediente completo de un folio de detención, desde que se levantó hasta su cierre.</p>
+    <h4>Información general</h4>
+    <p>Datos de captura: quién levantó el folio, cliente, producto, lote, la desviación detectada, el departamento responsable de generarla y el departamento que detuvo el material.</p>
+    <h4>Detalle de piezas / lotes</h4>
+    <ul>
+      <li>Una fila por cada lote o caja involucrada en el folio.</li>
+      <li>Las <b>piezas y kilos detenidos</b> son lo que se retuvo originalmente.</li>
+      <li>Las columnas de <b>aceptados</b> y <b>rechazados</b> se llenan al dictaminar; mientras el folio siga detenido aparecen en cero.</li>
+      <li>La fila de TOTAL suma toda la columna.</li>
+    </ul>
+    <h4>Estatus y cierre</h4>
+    <ul>
+      <li><b>Estatus</b> indica en qué punto va el folio y si requiere retrabajo.</li>
+      <li><b>Cierre del caso</b> guarda la fecha de dictamen, quién lo dictaminó y la disposición final. Si el folio sigue detenido esta sección aparece vacía.</li>
+    </ul>
+    <p style="margin-top:14px;color:var(--text-sub);font-size:12px">Para consultar otro folio, regresa al reporte y usa el buscador del encabezado.</p>
   </div>
 </div>
 <div class="content" id="content"></div>
@@ -51,6 +87,12 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 <script>
 const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
 let DETALLE=null;
+
+function abrirAyuda(){ document.getElementById("help-overlay").classList.add("open"); }
+function cerrarAyuda(){ document.getElementById("help-overlay").classList.remove("open"); }
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});
+
+
 
 function getFolioParam(){return new URLSearchParams(window.location.search).get("folio");}
 function field(label,value){return '<div class="field"><div class="field-label">'+label+'</div><div class="field-value">'+(value||"—")+'</div></div>';}
