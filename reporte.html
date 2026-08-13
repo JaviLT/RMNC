@@ -116,7 +116,8 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     <ul>
       <li>Se aplican a todos los indicadores y gráficas al mismo tiempo.</li>
       <li>Al elegir un <b>departamento</b>, las listas de coordinador, operador, cliente y desviación se limitan a ese departamento.</li>
-      <li><b>Limpiar filtros</b> regresa al mes y año actuales.</li>
+      <li>El filtro de <b>Estatus</b> arranca en Detenido y define qué material consideran las gráficas.</li>
+      <li><b>Limpiar filtros</b> regresa al mes y año actuales, con el estatus en Detenido.</li>
     </ul>
     <h4>Indicadores</h4>
     <ul>
@@ -128,7 +129,8 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     </ul>
     <h4>Gráficas</h4>
     <ul>
-      <li>Todas consideran únicamente el material con estatus Detenido.</li>
+      <li>Consideran el material del <b>Estatus</b> elegido en los filtros.</li>
+      <li>La gráfica de meses siempre muestra el año completo: el mes filtrado se ve en color sólido y los demás atenuados. Al hacer clic en un mes se filtra el reporte a ese mes, y al volver a hacer clic se quita.</li>
       <li>Al hacer clic en una barra se filtra el reporte por ese valor; el botón <b>Limpiar</b> de cada gráfica lo quita.</li>
       <li>Departamento y familia bajan un nivel al hacer clic: muestran líneas y descripciones de producto.</li>
       <li>La gráfica anual del final compara el año en curso contra los dos anteriores.</li>
@@ -153,6 +155,15 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
   <div class="fg"><label>Coordinador</label><select id="f-coord" onchange="aplicar()"><option value="">Todos</option></select></div>
   <div class="fg"><label>Operador</label><select id="f-op" onchange="aplicar()"><option value="">Todos</option></select></div>
   <div class="fg"><label>Tipo desviación</label><select id="f-dev" onchange="aplicar()"><option value="">Todos</option></select></div>
+  <div class="fg"><label>Estatus</label>
+    <select id="f-status" onchange="aplicar()">
+      <option value="Detenido" selected>Detenido</option>
+      <option value="Aceptado">Aceptado</option>
+      <option value="Rechazado">Rechazado</option>
+      <option value="A/R">A/R</option>
+      <option value="">Todos</option>
+    </select>
+  </div>
   <button class="btn" onclick="reset()">Limpiar filtros</button>
 </div>
 
@@ -351,12 +362,14 @@ function bar(id,labels,dataValues,baseColor,onClickFn,valorActual){
   }});
 }
 
-function barSimple(id,labels,datasets){
+function barSimple(id,labels,datasets,onClickFn){
   const c=document.getElementById(id);
   if(c._ch)c._ch.destroy();
   Chart.defaults.font.family="'Poppins','Segoe UI',sans-serif"; Chart.defaults.font.size=11; Chart.defaults.color=textColor();
   c._ch=new Chart(c,{type:"bar",data:{labels,datasets},options:{
     responsive:true,maintainAspectRatio:false,
+    onClick:(evt,els)=>{if(els.length>0&&onClickFn)onClickFn(els[0].index);},
+    onHover:(evt,els)=>{evt.native.target.style.cursor=(els.length>0&&onClickFn)?"pointer":"default";},
     plugins:{legend:{display:false}},
     scales:{x:{grid:{color:gridColor()},ticks:{autoSkip:false,maxRotation:45,font:{size:10}}},y:{grid:{color:gridColor()},ticks:{callback:v=>v.toLocaleString("es-MX"),font:{size:10}}}}
   }});
@@ -427,6 +440,7 @@ function aplicar(){
   const coord=document.getElementById("f-coord").value;
   const op=document.getElementById("f-op").value;
   const dev=document.getElementById("f-dev").value;
+  const estatus=document.getElementById("f-status").value;
 
   // Actualizar botones de limpiar en filtros superiores
   document.getElementById("clear-dep").classList.toggle("visible", !!dep||!!_depSel);
@@ -435,7 +449,20 @@ function aplicar(){
   document.getElementById("clear-familia").classList.toggle("visible", !!familia||!!_familiaSel);
 
   // Guardar filtros para detalle de kilos
-  _filtrosActivos={anio,mes,cliente,familia,dep,coord,op,dev,depSel:_depSel,familiaSel:_familiaSel};
+  _filtrosActivos={anio,mes,cliente,familia,dep,coord,op,dev,estatus,depSel:_depSel,familiaSel:_familiaSel};
+
+  // Conjuntos SIN filtro de mes (para la grafica anual de meses)
+  let bSM=[...D.base], fdSM=[...D.fallasData];
+  if(anio){bSM=bSM.filter(r=>r.Anio===anio);fdSM=fdSM.filter(r=>r.Anio===anio);}
+  if(cliente){bSM=bSM.filter(r=>r.Cliente===cliente);fdSM=fdSM.filter(r=>r.Cliente===cliente);}
+  if(familia){bSM=bSM.filter(r=>r.Familia===familia);fdSM=fdSM.filter(r=>r.Familia===familia);}
+  if(_familiaSel&&!familia){bSM=bSM.filter(r=>r.Familia===_familiaSel);fdSM=fdSM.filter(r=>r.Familia===_familiaSel);}
+  if(dep){bSM=bSM.filter(r=>r.DepResponsable===dep);fdSM=fdSM.filter(r=>r.DepResponsable===dep);}
+  if(coord){bSM=bSM.filter(r=>r.CoordDatos===coord);fdSM=fdSM.filter(r=>r.CoordDatos===coord);}
+  if(op){bSM=bSM.filter(r=>r.OpDatos===op);fdSM=fdSM.filter(r=>r.OpDatos===op);}
+  if(dev){bSM=bSM.filter(r=>r.Desviacion===dev);fdSM=fdSM.filter(r=>r.Desviacion===dev);}
+  if(dep&&_depSel){bSM=bSM.filter(r=>r.Linea===_depSel);fdSM=fdSM.filter(r=>r.Linea===_depSel);}
+  if(_descSel){bSM=bSM.filter(r=>r.Descripcion===_descSel);}
 
   let b=[...D.base], fd=[...D.fallasData], dd=[...D.datosData];
   if(anio){b=b.filter(r=>r.Anio===anio);fd=fd.filter(r=>r.Anio===anio);dd=dd.filter(r=>r.Anio===anio);}
@@ -450,22 +477,32 @@ function aplicar(){
   if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
   if(_descSel){b=b.filter(r=>r.Descripcion===_descSel);}
 
+  // Folios que cumplen el estatus seleccionado (para acotar DATOS)
+  const foliosEst=new Set(b.filter(r=>!estatus||r.Status===estatus).map(r=>r.Folio));
+
   const kf=r=>parseFloat(r.CantDetenido)||0;
 
 
 
-  // Grafica kilos por mes: CantDetenido, Aceptado, Scrap
+  // Grafica kilos por mes: SIEMPRE los 12 meses, el mes filtrado se resalta
   const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
-  b.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=parseFloat(r.CantDetenido)||0;}});
-  fd.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
+  bSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=parseFloat(r.CantDetenido)||0;}});
+  fdSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
     ace[m]+=parseFloat(r["Kilos Aceptados"])||0;
     rec[m]+=parseFloat(r["Kilos Rechazados"])||0;
   }});
+  const mesIdx=mes?parseInt(mes)-1:-1;
+  const tono=(hex)=>MESES.map((_,i)=>(mesIdx<0||i===mesIdx)?hex:hex+"40");
   barSimple("cKilos",MESES,[
-    {label:"Detenidos",data:det.map(v=>+v.toFixed(2)),backgroundColor:"#0D18A8",borderRadius:4},
-    {label:"Aceptados",data:ace.map(v=>+v.toFixed(2)),backgroundColor:"#166534",borderRadius:4},
-    {label:"Rechazados",data:rec.map(v=>+v.toFixed(2)),backgroundColor:"#991b1b",borderRadius:4}
-  ]);
+    {label:"Detenidos",data:det.map(v=>+v.toFixed(2)),backgroundColor:tono("#0D18A8"),borderRadius:4},
+    {label:"Aceptados",data:ace.map(v=>+v.toFixed(2)),backgroundColor:tono("#166534"),borderRadius:4},
+    {label:"Rechazados",data:rec.map(v=>+v.toFixed(2)),backgroundColor:tono("#991b1b"),borderRadius:4}
+  ], (idx)=>{
+    const nuevoMes=String(idx+1);
+    const selM=document.getElementById("f-mes");
+    selM.value=(selM.value===nuevoMes)?"":nuevoMes;
+    aplicar();
+  });
 
   // Subset solo Detenido (para KPI actual)
   const bAct=b.filter(r=>r.Status==="Detenido");
@@ -474,8 +511,8 @@ function aplicar(){
   const cardTipo=document.getElementById("card-tipo");
   const titleTipo=document.getElementById("title-tipo");
   const clearTipo=document.getElementById("clear-tipo");
-  // Solo status Detenido para todas las graficas
-  const bDet=b.filter(r=>r.Status==="Detenido");
+  // Las graficas respetan el filtro de Estatus (por defecto Detenido)
+  const bDet=estatus?b.filter(r=>r.Status===estatus):b;
 
   if(dev){
     titleTipo.textContent="Kilos detenidos por departamento (filtro: "+dev+")";
@@ -487,7 +524,7 @@ function aplicar(){
     titleTipo.textContent="Kilos detenidos por tipo de desviación";
     clearTipo.classList.remove("visible");
     const folioKilos={};bDet.forEach(r=>{folioKilos[r.Folio]=(folioKilos[r.Folio]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ct={};fd.forEach(r=>{
+    const ct={};fd.filter(r=>foliosEst.has(r.Folio)).forEach(r=>{
       if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+(folioKilos[r.Folio]||0);
     });
     const ts=Object.entries(ct).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -519,13 +556,13 @@ function aplicar(){
   if(coord){
     if(titleOp) titleOp.textContent="Kilos detenidos por operador — "+coord;
     clearOp.classList.add("visible");
-    const co={};dd.filter(r=>r.Coordinador===coord).forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
+    const co={};dd.filter(r=>r.Coordinador===coord&&foliosEst.has(r.Folio)).forEach(r=>{if(r.Operador)co[r.Operador]=(co[r.Operador]||0)+(parseFloat(r.Kilos)||0);});
     const os=Object.entries(co).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cOp",os.map(x=>x[0]),os.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{document.getElementById("f-op").value=v;aplicar();},op);
   } else {
     if(titleOp) titleOp.textContent="Kilos detenidos por coordinador";
-    const cc={};dd.forEach(r=>{if(r.Coordinador)cc[r.Coordinador]=(cc[r.Coordinador]||0)+(parseFloat(r.Kilos)||0);});
+    const cc={};dd.filter(r=>foliosEst.has(r.Folio)).forEach(r=>{if(r.Coordinador)cc[r.Coordinador]=(cc[r.Coordinador]||0)+(parseFloat(r.Kilos)||0);});
     const cs=Object.entries(cc).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cOp",cs.map(x=>x[0]),cs.map(x=>+x[1].toFixed(2)),"#227EF6",
       (v)=>{document.getElementById("f-coord").value=v;clearOp.classList.add("visible");aplicar();},coord);
@@ -705,6 +742,7 @@ function irADetalle(folio){
 function reset(){
   _depSel=null; _familiaSel=null; _descSel=null;
   ["f-anio","f-mes","f-cliente","f-familia","f-dep","f-coord","f-op","f-dev"].forEach(id=>document.getElementById(id).selectedIndex=0);
+  document.getElementById("f-status").value="Detenido";
   fillSelect("f-op",D.allOps); fillSelect("f-coord",D.allCoords);
   fillSelect("f-cliente",D.allClientes); fillSelect("f-dev",D.allDevs);
   const selAnio=document.getElementById("f-anio");
