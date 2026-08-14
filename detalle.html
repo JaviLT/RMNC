@@ -128,8 +128,11 @@ function render(){
       const kDet=parseFloat(d.Kilos)||0;
       const pAce=parseFloat(d.PiezasFinales)||0;
       const kAce=parseFloat((d.KgFinales||"").toString().replace(",",""))||0;
-      const pRec=parseFloat(d.PzScrap)||0;
-      const kRec=parseFloat(d.Scrap)||0;
+      // Rechazados = detenido - aceptado. Solo tiene sentido si ya hay dictamen;
+      // mientras el folio sigue Detenido aun no se ha aceptado ni rechazado nada.
+      const dictaminado = status!=="Detenido";
+      const pRec = dictaminado ? Math.max(pDet-pAce,0) : 0;
+      const kRec = dictaminado ? Math.max(kDet-kAce,0) : 0;
       totP+=pDet; totK+=kDet; totPF+=pAce; totKF+=kAce; totPR+=pRec; totKR+=kRec;
       html+='<tr><td>'+(d.Cajas||"—")+'</td><td>'+(d.IDs||"—")+'</td><td>'+(d.Lote||"—")+'</td><td>'+(d.Coordinador||"—")+'</td><td>'+(d.Operador||"—")+'</td>';
       html+='<td>'+fmtNum(pDet)+'</td><td>'+fmtNum(pAce)+'</td><td>'+fmtNum(pRec)+'</td>';
