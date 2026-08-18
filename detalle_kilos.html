@@ -67,6 +67,7 @@ tr:hover td{background:var(--kpibg)}
     <ul>
       <li>El título indica de qué indicador vienen los datos y cuántos registros hay.</li>
       <li>Se conservan los filtros que tenías puestos en el reporte, salvo en <b>Kilos detenidos actuales</b>, donde se muestran todos los folios detenidos sin importar la fecha.</li>
+      <li>En aceptados y rechazados el mes se cuenta por <b>fecha de cierre</b>, no por la de elaboración: un folio levantado en julio y dictaminado en agosto aparece en agosto. Si se dictaminó el mismo día y no tiene fecha de cierre, cuenta en su mes de elaboración.</li>
       <li>Los indicadores de aceptados y rechazados incluyen también los folios <b>A/R</b>, donde una parte se aceptó y otra se rechazó.</li>
     </ul>
     <h4>Filtros de esta pantalla</h4>
@@ -122,6 +123,16 @@ function parseFecha(f){
   const p=f.split("/"); return new Date(p[2]+"-"+p[1]+"-"+p[0]);
 }
 
+// Para aceptados y rechazados manda la fecha de cierre: un folio de julio
+// dictaminado en agosto pertenece a agosto. Si no hay fecha de cierre el
+// folio se dictamino al momento, asi que vale su fecha de elaboracion.
+function fechaEfectiva(r,tipo){
+  if(tipo==="Aceptado"||tipo==="Rechazado"){
+    if(r.FechaCierre&&r.FechaCierre.trim()!=="") return parseFecha(r.FechaCierre);
+  }
+  return parseFecha(r.Fecha);
+}
+
 function render(D){
   const tipo=getTipo();
   const filtros=JSON.parse(sessionStorage.getItem("rmnc-filtros")||"{}");
@@ -141,8 +152,8 @@ function render(D){
   else if(tipo!=="todos") rows=rows.filter(r=>r.Status===tipo);
 
   // Aplicar filtros guardados
-  if(filtros.anio) rows=rows.filter(r=>parseFecha(r.Fecha).getFullYear()===parseInt(filtros.anio));
-  if(filtros.mes)  rows=rows.filter(r=>(parseFecha(r.Fecha).getMonth()+1)===parseInt(filtros.mes));
+  if(filtros.anio) rows=rows.filter(r=>fechaEfectiva(r,tipo).getFullYear()===parseInt(filtros.anio));
+  if(filtros.mes)  rows=rows.filter(r=>(fechaEfectiva(r,tipo).getMonth()+1)===parseInt(filtros.mes));
   if(filtros.cliente) rows=rows.filter(r=>r.Cliente===filtros.cliente);
   if(filtros.familia) rows=rows.filter(r=>r.Familia===filtros.familia);
   if(filtros.dep)     rows=rows.filter(r=>r.DepResponsable===filtros.dep);
@@ -153,7 +164,7 @@ function render(D){
   if(depLocal) rows=rows.filter(r=>r.DepResponsable===depLocal);
   const selMesDk=document.getElementById("dk-mes");
   const mesLocal=(!modoSimple&&selMesDk)?selMesDk.value:"";
-  if(mesLocal) rows=rows.filter(r=>(parseFecha(r.Fecha).getMonth()+1)===parseInt(mesLocal));
+  if(mesLocal) rows=rows.filter(r=>(fechaEfectiva(r,tipo).getMonth()+1)===parseInt(mesLocal));
 
   // Modo simple: solo para Kilos detenidos actuales
   const simple = (tipo==="Detenido");
@@ -180,7 +191,7 @@ function render(D){
 
   const THEAD = simple
     ? '<thead><tr><th>Fecha de elaboración</th><th>Folio</th><th>Código</th><th>Descripción</th><th>Lote</th><th>Cant. Detenido</th><th>Desviación</th><th>DEPARTAMENTO</th></tr></thead>'
-    : '<thead><tr><th>Fecha de elaboración</th><th>Folio</th><th>Código</th><th>Descripción</th><th>Lote</th><th>Cant. Detenido</th><th>Kilos Aceptados</th><th>Kilos Rechazados</th><th>Desviación</th><th>DEPARTAMENTO</th><th>Estatus</th></tr></thead>';
+    : '<thead><tr><th>Fecha de elaboración</th><th>Fecha de cierre</th><th>Folio</th><th>Código</th><th>Descripción</th><th>Lote</th><th>Cant. Detenido</th><th>Kilos Aceptados</th><th>Kilos Rechazados</th><th>Desviación</th><th>DEPARTAMENTO</th><th>Estatus</th></tr></thead>';
 
   let html='';
 
@@ -209,13 +220,15 @@ function render(D){
     html+='<div class="card-title">'+dp+' — '+g.length+' registro(s)</div>';
     html+='<table>'+THEAD+'<tbody>';
     g.forEach(r=>{
-      html+='<tr><td>'+r.Fecha+'</td><td>'+r.Folio+'</td><td>'+r.Codigo+'</td><td>'+r.Descripcion+'</td><td>'+r.Lote+'</td><td>'+fmt(r.CantDetenido)+'</td>';
+      html+='<tr><td>'+r.Fecha+'</td>';
+      if(!simple) html+='<td>'+(r.FechaCierre&&r.FechaCierre.trim()!==""?r.FechaCierre:'<span style="color:var(--text-mut)">mismo día</span>')+'</td>';
+      html+='<td>'+r.Folio+'</td><td>'+r.Codigo+'</td><td>'+r.Descripcion+'</td><td>'+r.Lote+'</td><td>'+fmt(r.CantDetenido)+'</td>';
       if(!simple) html+='<td>'+fmt(r.Aceptado)+'</td><td>'+fmt(r.Scrap)+'</td>';
       html+='<td>'+r.Desviacion+'</td><td>'+r.DepDetuvo+'</td>';
       if(!simple) html+='<td>'+badgeStatus(r.Status)+'</td>';
       html+='</tr>';
     });
-    html+='<tr class="total-row"><td colspan="5">TOTAL '+dp+'</td><td>'+fmt(dD)+'</td>';
+    html+='<tr class="total-row"><td colspan="'+(simple?5:6)+'">TOTAL '+dp+'</td><td>'+fmt(dD)+'</td>';
     html+= simple ? '<td colspan="2"></td>' : ('<td>'+fmt(dA)+'</td><td>'+fmt(dR)+'</td><td colspan="3"></td>');
     html+='</tr>';
     html+='</tbody></table></div>';
@@ -247,11 +260,11 @@ async function exportarExcel(){
   // Mismas columnas que la pantalla
   const cols   = simple
     ? ["Fecha","Folio","Codigo","Descripcion","Lote","CantDetenido","Desviacion","DepDetuvo"]
-    : ["Fecha","Folio","Codigo","Descripcion","Lote","CantDetenido","Aceptado","Scrap","Desviacion","DepDetuvo","Status"];
+    : ["Fecha","FechaCierre","Folio","Codigo","Descripcion","Lote","CantDetenido","Aceptado","Scrap","Desviacion","DepDetuvo","Status"];
   const labels = simple
     ? ["Fecha de elaboración","Folio","Código","Descripción","Lote","Cant. Detenido","Desviación","Departamento"]
-    : ["Fecha de elaboración","Folio","Código","Descripción","Lote","Cant. Detenido","Kilos Aceptados","Kilos Rechazados","Desviación","Departamento","Estatus"];
-  const numCols = simple ? [6] : [6,7,8];  // 1-based
+    : ["Fecha de elaboración","Fecha de cierre","Folio","Código","Descripción","Lote","Cant. Detenido","Kilos Aceptados","Kilos Rechazados","Desviación","Departamento","Estatus"];
+  const numCols = simple ? [6] : [7,8,9];  // 1-based
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator="RMNC";
@@ -259,7 +272,7 @@ async function exportarExcel(){
 
   ws.columns = simple
     ? [{width:14},{width:9},{width:20},{width:38},{width:13},{width:14},{width:22},{width:18}]
-    : [{width:14},{width:9},{width:20},{width:38},{width:13},{width:14},{width:14},{width:15},{width:22},{width:18},{width:11}];
+    : [{width:14},{width:13},{width:9},{width:20},{width:38},{width:13},{width:14},{width:14},{width:15},{width:22},{width:18},{width:11}];
 
   const lastCol = labels.length;
   const colLetter = n => { let s=""; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
@@ -334,8 +347,7 @@ async function exportarExcel(){
     // Total del departamento
     const tot=new Array(labels.length).fill("");
     tot[0]="TOTAL "+dp;
-    tot[5]=dD;
-    if(!simple){ tot[6]=dA; tot[7]=dR; }
+    if(simple){ tot[5]=dD; } else { tot[6]=dD; tot[7]=dA; tot[8]=dR; }
     const tRow=ws.addRow(tot);
     tRow.height=16;
     tRow.eachCell(cell=>{
@@ -349,8 +361,7 @@ async function exportarExcel(){
   ws.addRow([]);
   const gt=new Array(labels.length).fill("");
   gt[0]="TOTAL GENERAL";
-  gt[5]=gD;
-  if(!simple){ gt[6]=gA; gt[7]=gR; }
+  if(simple){ gt[5]=gD; } else { gt[6]=gD; gt[7]=gA; gt[8]=gR; }
   const gRow=ws.addRow(gt);
   gRow.height=18;
   gRow.eachCell(cell=>{
