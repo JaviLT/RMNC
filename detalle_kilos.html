@@ -72,7 +72,8 @@ tr:hover td{background:var(--kpibg)}
     <h4>Filtros de esta pantalla</h4>
     <ul>
       <li><b>Departamento</b> y <b>Mes</b> acotan la tabla sin modificar el reporte.</li>
-      <li>La fila de TOTAL al final siempre refleja lo que está visible en pantalla.</li>
+      <li>El listado se agrupa por departamento responsable, ordenado de mayor a menor kilos, y cada bloque cierra con su propio total.</li>
+      <li>Cuando hay más de un departamento, la tarjeta de arriba resume todos y permite saltar a cada bloque con un clic.</li>
     </ul>
     <h4>Exportar</h4>
     <p><b>Exportar Excel</b> descarga exactamente los registros filtrados, con el formato institucional y la fila de totales incluida.</p>
@@ -152,16 +153,61 @@ function render(D){
   const mesLocal=selMesDk?selMesDk.value:"";
   if(mesLocal) rows=rows.filter(r=>(parseFecha(r.Fecha).getMonth()+1)===parseInt(mesLocal));
 
+  // Totales generales
   let totDet=0,totAce=0,totSc=0;
   rows.forEach(r=>{totDet+=parseFloat(r.CantDetenido)||0;totAce+=parseFloat(r.Aceptado)||0;totSc+=parseFloat(r.Scrap)||0;});
 
-  let html='<div class="card"><div class="card-title">'+TIPO_LABELS[tipo]+' — '+rows.length+' registros</div>';
-  html+='<table><thead><tr><th>Fecha de elaboración</th><th>Folio</th><th>Código</th><th>Descripción</th><th>Dep. Responsable</th><th>Lote</th><th>Cant. Detenido</th><th>Kilos Aceptados</th><th>Kilos Rechazados</th><th>Desviación</th><th>Dep. Detuvo</th><th>Estatus</th></tr></thead><tbody>';
+  // Agrupar por departamento responsable
+  const grupos={};
   rows.forEach(r=>{
-    html+='<tr><td>'+r.Fecha+'</td><td>'+r.Folio+'</td><td>'+r.Codigo+'</td><td>'+r.Descripcion+'</td><td>'+r.DepResponsable+'</td><td>'+r.Lote+'</td><td>'+fmt(r.CantDetenido)+'</td><td>'+fmt(r.Aceptado)+'</td><td>'+fmt(r.Scrap)+'</td><td>'+r.Desviacion+'</td><td>'+r.DepDetuvo+'</td><td>'+badgeStatus(r.Status)+'</td></tr>';
+    const k=r.DepResponsable||"SIN DEPARTAMENTO";
+    if(!grupos[k]) grupos[k]=[];
+    grupos[k].push(r);
   });
-  html+='<tr class="total-row"><td colspan="6">TOTAL</td><td>'+fmt(totDet)+'</td><td>'+fmt(totAce)+'</td><td>'+fmt(totSc)+'</td><td colspan="3"></td></tr>';
-  html+='</tbody></table></div>';
+  // Ordenar departamentos por kilos detenidos, de mayor a menor
+  const depsOrden=Object.keys(grupos).sort((a,b)=>{
+    const sa=grupos[a].reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+    const sb=grupos[b].reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+    return sb-sa;
+  });
+
+  const THEAD='<thead><tr><th>Fecha de elaboración</th><th>Folio</th><th>Código</th><th>Descripción</th><th>Lote</th><th>Cant. Detenido</th><th>Kilos Aceptados</th><th>Kilos Rechazados</th><th>Desviación</th><th>DEPARTAMENTO</th><th>Estatus</th></tr></thead>';
+
+  let html='';
+
+  // Resumen general arriba
+  html+='<div class="card"><div class="card-title">'+TIPO_LABELS[tipo]+' — '+rows.length+' registros en '+depsOrden.length+' departamento(s)</div>';
+  if(depsOrden.length>1){
+    html+='<table><thead><tr><th>Departamento</th><th>Registros</th><th>Cant. Detenido</th><th>Kilos Aceptados</th><th>Kilos Rechazados</th></tr></thead><tbody>';
+    depsOrden.forEach(dp=>{
+      const g=grupos[dp];
+      const sD=g.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
+      const sA=g.reduce((s,r)=>s+(parseFloat(r.Aceptado)||0),0);
+      const sR=g.reduce((s,r)=>s+(parseFloat(r.Scrap)||0),0);
+      html+='<tr><td><a href="#dep-'+encodeURIComponent(dp)+'" style="color:var(--header);text-decoration:none;font-weight:600">'+dp+'</a></td><td>'+g.length+'</td><td>'+fmt(sD)+'</td><td>'+fmt(sA)+'</td><td>'+fmt(sR)+'</td></tr>';
+    });
+    html+='<tr class="total-row"><td>TOTAL GENERAL</td><td>'+rows.length+'</td><td>'+fmt(totDet)+'</td><td>'+fmt(totAce)+'</td><td>'+fmt(totSc)+'</td></tr>';
+    html+='</tbody></table>';
+  }
+  html+='</div>';
+
+  // Una seccion por departamento
+  depsOrden.forEach(dp=>{
+    const g=grupos[dp];
+    let dD=0,dA=0,dR=0;
+    g.forEach(r=>{dD+=parseFloat(r.CantDetenido)||0;dA+=parseFloat(r.Aceptado)||0;dR+=parseFloat(r.Scrap)||0;});
+    html+='<div class="card" id="dep-'+encodeURIComponent(dp)+'">';
+    html+='<div class="card-title">'+dp+' — '+g.length+' registro(s)</div>';
+    html+='<table>'+THEAD+'<tbody>';
+    g.forEach(r=>{
+      html+='<tr><td>'+r.Fecha+'</td><td>'+r.Folio+'</td><td>'+r.Codigo+'</td><td>'+r.Descripcion+'</td><td>'+r.Lote+'</td><td>'+fmt(r.CantDetenido)+'</td><td>'+fmt(r.Aceptado)+'</td><td>'+fmt(r.Scrap)+'</td><td>'+r.Desviacion+'</td><td>'+r.DepDetuvo+'</td><td>'+badgeStatus(r.Status)+'</td></tr>';
+    });
+    html+='<tr class="total-row"><td colspan="5">TOTAL '+dp+'</td><td>'+fmt(dD)+'</td><td>'+fmt(dA)+'</td><td>'+fmt(dR)+'</td><td colspan="3"></td></tr>';
+    html+='</tbody></table></div>';
+  });
+
+  if(!rows.length) html='<div class="card"><p style="padding:30px;text-align:center;color:var(--text-sub)">Sin registros para este filtro.</p></div>';
+
   _rowsCache=rows;
   document.getElementById("btn-excel").style.display=rows.length?"":"none";
   document.getElementById("content").innerHTML=html;
