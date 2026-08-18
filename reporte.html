@@ -123,7 +123,7 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     <ul>
       <li><b>Kilos detenidos totales:</b> suma de todo lo detenido en el periodo filtrado, sin importar cómo se dictaminó. Solo aparece cuando el mes está en "Todos".</li>
       <li><b>Kilos detenidos actuales:</b> material que sigue detenido hoy, en espera de dictamen. Al abrirlo se muestran todos los folios detenidos sin importar la fecha.</li>
-      <li><b>Kilos detenidos a fin de mes:</b> foto del material que quedó detenido al cerrar cada mes, tomada el día 1 a las 00:00. Estos números ya no cambian aunque después se dictaminen esos folios. Sin mes filtrado muestra el acumulado del año y el desglose mes por mes.</li>
+      <li><b>Kilos detenidos a fin de mes:</b> todo el material que seguía detenido al cerrar el mes, sin importar cuándo se levantó el folio. Es una foto tomada el día 1 a las 00:00 y ya no cambia. El subtexto lista todos los meses cerrados del año y no se altera con el filtro de mes.</li>
       <li><b>Kilos aceptados / rechazados:</b> resultado del dictamen. Con el mes en "Todos" cada indicador muestra su desglose mes por mes.</li>
       <li>Al hacer clic en cualquier indicador se abre el detalle por folio.</li>
     </ul>
@@ -131,7 +131,8 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     <ul>
       <li>Consideran el material del <b>Estatus</b> elegido en los filtros.</li>
       <li>La gráfica de meses siempre muestra el año completo: el mes filtrado se ve en color sólido y los demás atenuados. Al hacer clic en un mes se filtra el reporte a ese mes, y al volver a hacer clic se quita.</li>
-      <li>La barra morada <b>Detenido a fin de mes</b> es la foto congelada del cierre y solo aparece en meses ya cerrados; no se mueve con los filtros de estatus.</li>
+      <li>La barra morada <b>Detenido a fin de mes</b> cuenta solo los folios levantados en ese mes que quedaron sin dictaminar, para que sea comparable con las otras tres barras. Es una foto congelada y solo aparece en meses ya cerrados.</li>
+      <li>Ojo: el indicador de arriba mide el inventario detenido total al cierre, incluyendo rezagos de meses anteriores, por eso suele ser mayor que la barra morada.</li>
       <li>Al hacer clic en una barra se filtra el reporte por ese valor; el botón <b>Limpiar</b> de cada gráfica lo quita.</li>
       <li>Departamento y familia bajan un nivel al hacer clic: muestran líneas y descripciones de producto.</li>
       <li>La gráfica anual del final compara el año en curso contra los dos anteriores.</li>
@@ -493,7 +494,8 @@ function aplicar(){
     ace[m]+=parseFloat(r["Kilos Aceptados"])||0;
     rec[m]+=parseFloat(r["Kilos Rechazados"])||0;
   }});
-  // Cuarta serie: foto congelada del cierre de cada mes (CIERRE_MES)
+  // Cuarta serie: foto congelada del cierre de cada mes (CIERRE_MES).
+  // Aqui va el MENSUAL: solo folios levantados en ese mes que quedaron detenidos.
   const finM=Array(12).fill(null);
   const anioG=parseInt(anio||ANIO_ACTUAL);
   (D.cierresData||[]).forEach(x=>{
@@ -642,18 +644,14 @@ function aplicar(){
   const cierresAnio=(D.cierresData||[]).filter(x=>parseInt(x.Anio)===anioKpi)
                      .sort((a,b)=>parseInt(a.Mes)-parseInt(b.Mes));
   if(kpiCierre){
-    if(mesSel){
-      // Con mes filtrado: el valor de ese mes
-      const cm=cierresAnio.find(x=>parseInt(x.Mes)===parseInt(mesSel));
-      document.getElementById("kpi-cierre-val").textContent=cm?fmt(parseFloat(cm.KilosDetenidos)):"—";
-      document.getElementById("kpi-cierre-sub").textContent=cm?(MESES_CORTOS[parseInt(mesSel)-1]+" "+anioKpi+" (cerrado)"):"Mes aun sin cerrar";
-    } else {
-      // Sin mes: total del anio y desglose mes por mes
-      const totC=cierresAnio.reduce((s,x)=>s+parseFloat(x.KilosDetenidos||0),0);
-      document.getElementById("kpi-cierre-val").textContent=cierresAnio.length?fmt(totC):"—";
-      const det=cierresAnio.map(x=>MESES_CORTOS[parseInt(x.Mes)-1]+":"+parseFloat(x.KilosDetenidos||0).toLocaleString("es-MX",{maximumFractionDigits:0})).join(" | ");
-      document.getElementById("kpi-cierre-sub").textContent=det||"Sin meses cerrados";
-    }
+    // El KPI usa el ACUMULADO: todo lo que seguia detenido al cierre de cada mes.
+    // Si un mes no tiene acumulado (cierres viejos) se cae al mensual.
+    // Siempre muestra todos los meses cerrados, sin importar el filtro de mes
+    const acum=x=>parseFloat(x.KilosAcumulado||0)||parseFloat(x.KilosDetenidos||0);
+    const ult=cierresAnio[cierresAnio.length-1];
+    document.getElementById("kpi-cierre-val").textContent=ult?fmt(acum(ult)):"—";
+    const detC=cierresAnio.map(x=>MESES_CORTOS[parseInt(x.Mes)-1]+":"+acum(x).toLocaleString("es-MX",{maximumFractionDigits:0})).join(" | ");
+    document.getElementById("kpi-cierre-sub").textContent=detC||"Sin meses cerrados";
   }
 
   if(!mesSel){
