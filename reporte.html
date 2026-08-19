@@ -126,10 +126,10 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     </ul>
     <h4>Indicadores</h4>
     <ul>
-      <li><b>Kilos detenidos totales:</b> suma de todo lo detenido en el periodo filtrado, sin importar cómo se dictaminó. Solo aparece cuando el mes está en "Todos".</li>
+      <li><b>Kilos detenidos totales:</b> suma de todo lo detenido en el periodo filtrado, contado por fecha de elaboración. Solo aparece cuando el mes está en "Todos".</li>
       <li><b>Kilos detenidos actuales:</b> material que sigue detenido hoy, en espera de dictamen. Al abrirlo se muestran todos los folios detenidos sin importar la fecha.</li>
       <li><b>Kilos detenidos a fin de mes:</b> todo el material que seguía detenido al cerrar el mes, sin importar cuándo se levantó el folio. Es una foto tomada el día 1 a las 00:00 y ya no cambia. El subtexto lista todos los meses cerrados del año y no se altera con el filtro de mes.</li>
-      <li><b>Kilos aceptados / rechazados:</b> resultado del dictamen. Con el mes en "Todos" cada indicador muestra su desglose mes por mes.</li>
+      <li><b>Kilos aceptados / rechazados:</b> resultado del dictamen, contado por <b>fecha de cierre</b>: un folio de julio dictaminado en agosto suma en agosto. Si se dictaminó el mismo día, cuenta en su mes de elaboración. Con el mes en "Todos" cada indicador muestra su desglose mes por mes.</li>
       <li>Al hacer clic en cualquier indicador se abre el detalle por folio.</li>
     </ul>
     <h4>Gráficas</h4>
@@ -484,6 +484,25 @@ function aplicar(){
   if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
   if(_descSel){b=b.filter(r=>r.Descripcion===_descSel);}
 
+  // Conjuntos por FECHA EFECTIVA (cierre, o elaboracion si no hay cierre).
+  // Se usan para aceptados y rechazados, para que cuadren con detalle_kilos.
+  const noFecha = arr => {
+    let a=arr;
+    if(cliente) a=a.filter(r=>r.Cliente===cliente);
+    if(familia) a=a.filter(r=>r.Familia===familia);
+    if(_familiaSel&&!familia) a=a.filter(r=>r.Familia===_familiaSel);
+    if(dep) a=a.filter(r=>r.DepResponsable===dep);
+    if(coord) a=a.filter(r=>r.CoordDatos===coord);
+    if(op) a=a.filter(r=>r.OpDatos===op);
+    if(dev) a=a.filter(r=>r.Desviacion===dev);
+    if(dep&&_depSel) a=a.filter(r=>r.Linea===_depSel);
+    if(_descSel) a=a.filter(r=>r.Descripcion===_descSel);
+    return a;
+  };
+  let bSMEf=noFecha([...D.base]);
+  if(anio) bSMEf=bSMEf.filter(r=>r.AnioEf===anio);
+  const bEf = mes ? bSMEf.filter(r=>r.MesEf===mes) : bSMEf;
+
   // Folios que cumplen el estatus seleccionado (para acotar DATOS)
   const foliosEst=new Set(b.filter(r=>!estatus||r.Status===estatus).map(r=>r.Folio));
 
@@ -494,9 +513,10 @@ function aplicar(){
   // Grafica kilos por mes: SIEMPRE los 12 meses, el mes filtrado se resalta
   const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
   bSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=parseFloat(r.CantDetenido)||0;}});
-  fdSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
-    ace[m]+=parseFloat(r["Kilos Aceptados"])||0;
-    rec[m]+=parseFloat(r["Kilos Rechazados"])||0;
+  // Aceptados y rechazados van por mes de cierre
+  bSMEf.forEach(r=>{const m=parseInt(r.MesEf)-1;if(m>=0&&m<12){
+    ace[m]+=parseFloat(r.Aceptado)||0;
+    rec[m]+=parseFloat(r.Scrap)||0;
   }});
   // Cuarta serie: foto congelada del cierre de cada mes (CIERRE_MES).
   // Aqui va el MENSUAL: solo folios levantados en ese mes que quedaron detenidos.
@@ -628,9 +648,10 @@ function aplicar(){
   const bActGlobal=D.base.filter(r=>r.Status==="Detenido" && (!anio||r.Anio===anio) && (!cliente||r.Cliente===cliente) && (!familia||r.Familia===familia||r.Familia===_familiaSel) && (!dep||r.DepResponsable===dep) && (!coord||r.CoordDatos===coord) && (!op||r.OpDatos===op) && (!dev||r.Desviacion===dev));
   const tAct=bActGlobal.reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0);
 
-  // Aceptados y Rechazados de FALLAS
-  const tAce=fd.reduce((s,r)=>s+(parseFloat(r["Kilos Aceptados"])||0),0);
-  const tRec=fd.reduce((s,r)=>s+(parseFloat(r["Kilos Rechazados"])||0),0);
+  // Aceptados y Rechazados de RESPUESTAS por fecha de cierre.
+  // Mismo criterio que detalle_kilos, para que el KPI cuadre con su total.
+  const tAce=bEf.reduce((s,r)=>s+(parseFloat(r.Aceptado)||0),0);
+  const tRec=bEf.reduce((s,r)=>s+(parseFloat(r.Scrap)||0),0);
 
   document.getElementById("kpi-det-total").textContent=fmt(tDet);
   document.getElementById("kpi-det-actual").textContent=fmt(tAct);
@@ -669,7 +690,7 @@ function aplicar(){
 
     const detM=Array(12).fill(0), aceM=Array(12).fill(0), recM=Array(12).fill(0);
     bActGlobal.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12)detM[m]+=parseFloat(r.CantDetenido)||0;});
-    fd.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){aceM[m]+=parseFloat(r["Kilos Aceptados"])||0;recM[m]+=parseFloat(r["Kilos Rechazados"])||0;}});
+    bSMEf.forEach(r=>{const m=parseInt(r.MesEf)-1;if(m>=0&&m<12){aceM[m]+=parseFloat(r.Aceptado)||0;recM[m]+=parseFloat(r.Scrap)||0;}});
 
     const linea=arr=>MESES_CORTOS.map((m,i)=>arr[i]>0?m+":"+fmtS(arr[i]):"").filter(Boolean).join(" | ");
     document.getElementById("sub-act").textContent=linea(detM)||"Sin datos";
@@ -690,8 +711,8 @@ function aplicar(){
   const anioActN=parseInt(ANIO_ACTUAL);
   const aniosAnual=[anioActN-2,anioActN-1,anioActN].map(String);
   const detAnual=aniosAnual.map(a=>D.base.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r.CantDetenido)||0),0));
-  const aceAnual=aniosAnual.map(a=>D.fallasData.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r["Kilos Aceptados"])||0),0));
-  const recAnual=aniosAnual.map(a=>D.fallasData.filter(r=>r.Anio===a).reduce((s,r)=>s+(parseFloat(r["Kilos Rechazados"])||0),0));
+  const aceAnual=aniosAnual.map(a=>D.base.filter(r=>r.AnioEf===a).reduce((s,r)=>s+(parseFloat(r.Aceptado)||0),0));
+  const recAnual=aniosAnual.map(a=>D.base.filter(r=>r.AnioEf===a).reduce((s,r)=>s+(parseFloat(r.Scrap)||0),0));
   const cA=document.getElementById("cAnual");
   if(cA){
     if(cA._ch)cA._ch.destroy();

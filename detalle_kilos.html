@@ -68,7 +68,7 @@ tr:hover td{background:var(--kpibg)}
       <li>El título indica de qué indicador vienen los datos y cuántos registros hay.</li>
       <li>Se conservan los filtros que tenías puestos en el reporte, salvo en <b>Kilos detenidos actuales</b>, donde se muestran todos los folios detenidos sin importar la fecha.</li>
       <li>En aceptados y rechazados el mes se cuenta por <b>fecha de cierre</b>, no por la de elaboración: un folio levantado en julio y dictaminado en agosto aparece en agosto. Si se dictaminó el mismo día y no tiene fecha de cierre, cuenta en su mes de elaboración.</li>
-      <li>Los indicadores de aceptados y rechazados incluyen también los folios <b>A/R</b>, donde una parte se aceptó y otra se rechazó.</li>
+      <li>Aceptados y rechazados se listan por los kilos que tiene el folio en esa columna, no por su etiqueta de estatus. Un folio con dictamen mixto aparece en las dos listas, cada una con su parte.</li>
     </ul>
     <h4>Filtros de esta pantalla</h4>
     <ul>
@@ -146,9 +146,11 @@ function render(D){
   }
 
   let rows=[...D.kilosDetalle];
-  // Filtrar A/R segun tipo
-  if(tipo==="Aceptado") rows=rows.filter(r=>r.Status==="Aceptado"||r.Status==="A/R");
-  else if(tipo==="Rechazado") rows=rows.filter(r=>r.Status==="Rechazado"||r.Status==="A/R");
+  // Se filtra por los kilos que tiene el folio, no por su etiqueta de estatus.
+  // Hay dictamenes mixtos capturados como "Aceptado" que traen scrap, y deben
+  // contar en rechazados. Asi el total de aqui cuadra con el KPI del reporte.
+  if(tipo==="Aceptado") rows=rows.filter(r=>(parseFloat(r.Aceptado)||0)>0);
+  else if(tipo==="Rechazado") rows=rows.filter(r=>(parseFloat(r.Scrap)||0)>0);
   else if(tipo!=="todos") rows=rows.filter(r=>r.Status===tipo);
 
   // Aplicar filtros guardados
