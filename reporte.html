@@ -136,7 +136,8 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
     <ul>
       <li>Consideran el material del <b>Estatus</b> elegido en los filtros.</li>
       <li>La gráfica de meses siempre muestra el año completo: el mes filtrado se ve en color sólido y los demás atenuados. Al hacer clic en un mes se filtra el reporte a ese mes, y al volver a hacer clic se quita.</li>
-      <li>La barra morada <b>Detenido a fin de mes</b> cuenta solo los folios levantados en ese mes que quedaron sin dictaminar, para que sea comparable con las otras tres barras. Es una foto congelada y solo aparece en meses ya cerrados.</li>
+      <li>Las cuatro barras cuentan los folios <b>levantados en ese mes</b>, así que aceptados + rechazados + detenido a fin de mes equivale a los detenidos del mes.</li>
+      <li>La barra amarilla <b>Detenido a fin de mes</b> es la foto tomada al cerrar el mes. Una vez que el mes cierra, sus cuatro barras quedan congeladas: si después se dictamina un folio rezagado, el mes ya no se mueve y el cambio se ve en los indicadores de arriba, que sí van por fecha de cierre.</li>
       <li>Ojo: el indicador de arriba mide el inventario detenido total al cierre, incluyendo rezagos de meses anteriores, por eso suele ser mayor que la barra morada.</li>
       <li>Al hacer clic en una barra se filtra el reporte por ese valor; el botón <b>Limpiar</b> de cada gráfica lo quita.</li>
       <li>Departamento y familia bajan un nivel al hacer clic: muestran líneas y descripciones de producto.</li>
@@ -512,9 +513,10 @@ function aplicar(){
 
   // Grafica kilos por mes: SIEMPRE los 12 meses, el mes filtrado se resalta
   const det=Array(12).fill(0),ace=Array(12).fill(0),rec=Array(12).fill(0);
-  bSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){det[m]+=parseFloat(r.CantDetenido)||0;}});
-  // Aceptados y rechazados van por mes de cierre
-  bSMEf.forEach(r=>{const m=parseInt(r.MesEf)-1;if(m>=0&&m<12){
+  // Las 4 series van por MES DE CREACION del folio, asi
+  // aceptados + rechazados + detenido a fin de mes = detenidos del mes.
+  bSM.forEach(r=>{const m=parseInt(r.Mes)-1;if(m>=0&&m<12){
+    det[m]+=parseFloat(r.CantDetenido)||0;
     ace[m]+=parseFloat(r.Aceptado)||0;
     rec[m]+=parseFloat(r.Scrap)||0;
   }});
@@ -523,10 +525,14 @@ function aplicar(){
   const finM=Array(12).fill(null);
   const anioG=parseInt(anio||ANIO_ACTUAL);
   (D.cierresData||[]).forEach(x=>{
-    if(parseInt(x.Anio)===anioG){
-      const mi=parseInt(x.Mes)-1;
-      if(mi>=0&&mi<12) finM[mi]=+parseFloat(x.KilosDetenidos||0).toFixed(2);
-    }
+    if(parseInt(x.Anio)!==anioG) return;
+    const mi=parseInt(x.Mes)-1;
+    if(mi<0||mi>=12) return;
+    finM[mi]=+parseFloat(x.KilosDetenidos||0).toFixed(2);
+    // Un mes con foto ya cerro: sus barras quedan congeladas y no se mueven
+    // aunque despues se dictaminen folios rezagados de ese mes.
+    if(x.KilosAceptados!==null&&x.KilosAceptados!==undefined)  ace[mi]=+parseFloat(x.KilosAceptados).toFixed(2);
+    if(x.KilosRechazados!==null&&x.KilosRechazados!==undefined) rec[mi]=+parseFloat(x.KilosRechazados).toFixed(2);
   });
 
   const mesIdx=mes?parseInt(mes)-1:-1;
