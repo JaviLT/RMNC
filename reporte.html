@@ -460,29 +460,29 @@ function aplicar(){
   _filtrosActivos={anio,mes,cliente,familia,dep,coord,op,dev,estatus,depSel:_depSel,familiaSel:_familiaSel};
 
   // Conjuntos SIN filtro de mes (para la grafica anual de meses)
-  let bSM=[...D.base], fdSM=[...D.fallasData];
-  if(anio){bSM=bSM.filter(r=>r.Anio===anio);fdSM=fdSM.filter(r=>r.Anio===anio);}
-  if(cliente){bSM=bSM.filter(r=>r.Cliente===cliente);fdSM=fdSM.filter(r=>r.Cliente===cliente);}
-  if(familia){bSM=bSM.filter(r=>r.Familia===familia);fdSM=fdSM.filter(r=>r.Familia===familia);}
-  if(_familiaSel&&!familia){bSM=bSM.filter(r=>r.Familia===_familiaSel);fdSM=fdSM.filter(r=>r.Familia===_familiaSel);}
-  if(dep){bSM=bSM.filter(r=>r.DepResponsable===dep);fdSM=fdSM.filter(r=>r.DepResponsable===dep);}
-  if(coord){bSM=bSM.filter(r=>r.CoordDatos===coord);fdSM=fdSM.filter(r=>r.CoordDatos===coord);}
-  if(op){bSM=bSM.filter(r=>r.OpDatos===op);fdSM=fdSM.filter(r=>r.OpDatos===op);}
-  if(dev){bSM=bSM.filter(r=>r.Desviacion===dev);fdSM=fdSM.filter(r=>r.Desviacion===dev);}
-  if(dep&&_depSel){bSM=bSM.filter(r=>r.Linea===_depSel);fdSM=fdSM.filter(r=>r.Linea===_depSel);}
+  let bSM=[...D.base];
+  if(anio){bSM=bSM.filter(r=>r.Anio===anio);}
+  if(cliente){bSM=bSM.filter(r=>r.Cliente===cliente);}
+  if(familia){bSM=bSM.filter(r=>r.Familia===familia);}
+  if(_familiaSel&&!familia){bSM=bSM.filter(r=>r.Familia===_familiaSel);}
+  if(dep){bSM=bSM.filter(r=>r.DepResponsable===dep);}
+  if(coord){bSM=bSM.filter(r=>r.CoordDatos===coord);}
+  if(op){bSM=bSM.filter(r=>r.OpDatos===op);}
+  if(dev){bSM=bSM.filter(r=>r.Desviacion===dev);}
+  if(dep&&_depSel){bSM=bSM.filter(r=>r.Linea===_depSel);}
   if(_descSel){bSM=bSM.filter(r=>r.Descripcion===_descSel);}
 
-  let b=[...D.base], fd=[...D.fallasData], dd=[...D.datosData];
-  if(anio){b=b.filter(r=>r.Anio===anio);fd=fd.filter(r=>r.Anio===anio);dd=dd.filter(r=>r.Anio===anio);}
-  if(mes){b=b.filter(r=>r.Mes===mes);fd=fd.filter(r=>r.Mes===mes);dd=dd.filter(r=>r.Mes===mes);}
-  if(cliente){b=b.filter(r=>r.Cliente===cliente);fd=fd.filter(r=>r.Cliente===cliente);dd=dd.filter(r=>r.Cliente===cliente);}
-  if(familia){b=b.filter(r=>r.Familia===familia);fd=fd.filter(r=>r.Familia===familia);dd=dd.filter(r=>r.Familia===familia);}
-  if(_familiaSel&&!familia){b=b.filter(r=>r.Familia===_familiaSel);fd=fd.filter(r=>r.Familia===_familiaSel);dd=dd.filter(r=>r.Familia===_familiaSel);}
-  if(dep){b=b.filter(r=>r.DepResponsable===dep);fd=fd.filter(r=>r.DepResponsable===dep);dd=dd.filter(r=>r.DepResponsable===dep);}
-  if(coord){b=b.filter(r=>r.CoordDatos===coord);fd=fd.filter(r=>r.CoordDatos===coord);dd=dd.filter(r=>r.Coordinador===coord);}
-  if(op){b=b.filter(r=>r.OpDatos===op);fd=fd.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
-  if(dev){b=b.filter(r=>r.Desviacion===dev);fd=fd.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
-  if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);fd=fd.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
+  let b=[...D.base], dd=[...D.datosData];
+  if(anio){b=b.filter(r=>r.Anio===anio);dd=dd.filter(r=>r.Anio===anio);}
+  if(mes){b=b.filter(r=>r.Mes===mes);dd=dd.filter(r=>r.Mes===mes);}
+  if(cliente){b=b.filter(r=>r.Cliente===cliente);dd=dd.filter(r=>r.Cliente===cliente);}
+  if(familia){b=b.filter(r=>r.Familia===familia);dd=dd.filter(r=>r.Familia===familia);}
+  if(_familiaSel&&!familia){b=b.filter(r=>r.Familia===_familiaSel);dd=dd.filter(r=>r.Familia===_familiaSel);}
+  if(dep){b=b.filter(r=>r.DepResponsable===dep);dd=dd.filter(r=>r.DepResponsable===dep);}
+  if(coord){b=b.filter(r=>r.CoordDatos===coord);dd=dd.filter(r=>r.Coordinador===coord);}
+  if(op){b=b.filter(r=>r.OpDatos===op);dd=dd.filter(r=>r.Operador===op);}
+  if(dev){b=b.filter(r=>r.Desviacion===dev);dd=dd.filter(r=>r.Desviacion===dev);}
+  if(dep&&_depSel){b=b.filter(r=>r.Linea===_depSel);dd=dd.filter(r=>r.Linea===_depSel);}
   if(_descSel){b=b.filter(r=>r.Descripcion===_descSel);}
 
   // Conjuntos por FECHA EFECTIVA (cierre, o elaboracion si no hay cierre).
@@ -568,9 +568,12 @@ function aplicar(){
   } else {
     titleTipo.textContent="Kilos detenidos por tipo de desviación";
     clearTipo.classList.remove("visible");
-    const folioKilos={};bDet.forEach(r=>{folioKilos[r.Folio]=(folioKilos[r.Folio]||0)+(parseFloat(r.CantDetenido)||0);});
-    const ct={};fd.filter(r=>foliosEst.has(r.Folio)).forEach(r=>{
-      if(r.Desviacion)ct[r.Desviacion]=(ct[r.Desviacion]||0)+(folioKilos[r.Folio]||0);
+    // Desviacion y kilos salen de RESPUESTAS: un folio, una desviacion.
+    const ct={};
+    bDet.forEach(r=>{
+      const kilos=parseFloat(r.CantDetenido)||0;
+      if(!kilos||!r.Desviacion) return;
+      ct[r.Desviacion]=(ct[r.Desviacion]||0)+kilos;
     });
     const ts=Object.entries(ct).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
     barH("cTipo",ts.map(x=>x[0]),ts.map(x=>+x[1].toFixed(2)),"#227EF6",
@@ -858,7 +861,7 @@ window.onload=async function(){
 };
 </script>
 <footer style="background:#f8fafc;border-top:1px solid #dbeafe;padding:10px 28px;font-family:'Poppins','Segoe UI',sans-serif;font-size:11px;color:#718096;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-  <span><strong>Nota metodológica:</strong> Kilos detenidos = CantDetenido (RESPUESTAS). Kilos aceptados/rechazados = FALLAS. Coordinador/Operador = DATOS. Sitio SharePoint RMNC.</span>
+  <span><strong>Nota metodológica:</strong> Kilos detenidos, aceptados y rechazados = RESPUESTAS. Coordinador/Operador = DATOS. Cierres mensuales = CIERRE_MES. Sitio SharePoint RMNC.</span>
   <span id="footer-fecha">—</span>
 </footer>
 <script>
