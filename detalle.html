@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Detalle de Folio — RMNC</title>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <style>
 :root{--bg:#f0f4f8;--card:#ffffff;--text:#1a1a1a;--text-sub:#666;--text-mut:#999;--border:#e0e8f0;--header:#0D18A8;--kpibg:#eff6ff;--zx-primary:#0D18A8;--zx-accent:#227EF6;}
 [data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--text:#e8edf4;--text-sub:#a8b3c4;--text-mut:#7c8aa0;--border:#334155;--header:#15355e;--kpibg:#16243d;}
@@ -31,6 +32,9 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .status-Aceptado{background:#d1fae5;color:#065f46}
 .status-Rechazado{background:#fee2e2;color:#991b1b}
 .status-AR{background:linear-gradient(90deg,#d1fae5 50%,#fee2e2 50%);color:#1a1a1a;border:1px solid #aaa}
+body.exportando .header-right,
+body.exportando .help-overlay { display:none !important; }
+body.exportando .card { break-inside:avoid; page-break-inside:avoid; box-shadow:none; }
 @media print{
   /* Al imprimir se ocultan los controles y se fuerza el tema claro */
   .header-right, .help-overlay { display:none !important; }
@@ -109,15 +113,43 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});
 
 
 
-function descargarPDF(){
-  // Se usa la impresion del navegador: respeta el diseno de la pagina y no
-  // necesita librerias. En el dialogo se elige "Guardar como PDF".
+async function descargarPDF(){
+  const btn=document.getElementById("btn-pdf");
+  if(typeof html2pdf==="undefined"){
+    alert("No se pudo cargar el generador de PDF. Revisa la conexion e intenta de nuevo.");
+    return;
+  }
   const folio=getFolioParam()||"";
-  const titulo=document.title;
-  document.title="Folio_"+folio+"_RMNC";   // define el nombre que propone el PDF
+  const textoPrev=btn.textContent;
+  btn.textContent="Generando...";
+  btn.disabled=true;
   cerrarAyuda();
-  window.print();
-  setTimeout(function(){ document.title=titulo; }, 800);
+
+  // Durante la captura se fuerza el tema claro y se ocultan los controles,
+  // asi el PDF sale legible aunque la pantalla este en modo oscuro.
+  const temaPrev=document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme","light");
+  document.body.classList.add("exportando");
+
+  try{
+    await html2pdf().set({
+      margin:[8,8,8,8],
+      filename:"Folio_"+folio+"_RMNC.pdf",
+      image:{type:"jpeg",quality:0.98},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"],avoid:".card"}
+    }).from(document.body).save();
+  } catch(e){
+    console.error(e);
+    alert("Ocurrio un error al generar el PDF.");
+  } finally{
+    document.body.classList.remove("exportando");
+    if(temaPrev) document.documentElement.setAttribute("data-theme",temaPrev);
+    else document.documentElement.removeAttribute("data-theme");
+    btn.textContent=textoPrev;
+    btn.disabled=false;
+  }
 }
 
 function getFolioParam(){return new URLSearchParams(window.location.search).get("folio");}
