@@ -35,6 +35,16 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 body.exportando .header-right,
 body.exportando .help-overlay { display:none !important; }
 body.exportando .card { break-inside:avoid; page-break-inside:avoid; box-shadow:none; }
+/* El body recorta el desbordamiento horizontal, lo que cortaba la tabla de
+   piezas en el PDF. Durante la exportacion se libera y se compacta la tabla
+   para que sus 11 columnas quepan a lo ancho de la hoja. */
+body.exportando { overflow-x:visible !important; }
+body.exportando .content { max-width:none; padding:14px 16px; }
+body.exportando .datos-table { table-layout:fixed; width:100%; }
+body.exportando .datos-table th,
+body.exportando .datos-table td { padding:4px 5px; font-size:9px; word-break:break-word; }
+body.exportando .datos-table th { font-size:8px; letter-spacing:0; }
+body.exportando .field-grid { gap:10px; }
 @media print{
   /* Al imprimir se ocultan los controles y se fuerza el tema claro */
   .header-right, .help-overlay { display:none !important; }
@@ -45,7 +55,10 @@ body.exportando .card { break-inside:avoid; page-break-inside:avoid; box-shadow:
   body { background:#fff !important; }
   .header { background:#0D18A8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .card { break-inside:avoid; page-break-inside:avoid; box-shadow:none; }
-  .datos-table { font-size:10px; }
+  .datos-table { table-layout:fixed; width:100%; }
+  .datos-table th, .datos-table td { padding:4px 5px; font-size:9px; word-break:break-word; }
+  .datos-table th { font-size:8px; letter-spacing:0; }
+  .content { max-width:none; }
   .status-badge, .card-title { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   @page { margin:12mm; }
 }
@@ -136,7 +149,11 @@ async function descargarPDF(){
       margin:[8,8,8,8],
       filename:"Folio_"+folio+"_RMNC.pdf",
       image:{type:"jpeg",quality:0.98},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+      html2canvas:{
+        scale:2,useCORS:true,backgroundColor:"#ffffff",
+        scrollX:0,scrollY:0,
+        windowWidth:document.documentElement.scrollWidth
+      },
       jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
       pagebreak:{mode:["css","legacy"],avoid:".card"}
     }).from(document.body).save();
