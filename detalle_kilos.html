@@ -117,10 +117,23 @@ function badgeStatus(s){
 function getTipo(){return new URLSearchParams(window.location.search).get("tipo")||"todos";}
 
 function parseFecha(f){
-  // Soporta 2026-07-13 y 13/07/2026
+  // Soporta 2026-07-13 y 13/07/2026.
+  // Se arma la fecha como LOCAL, no con new Date(texto): esa forma interpreta
+  // "2026-10-01" como medianoche UTC y en Mexico retrocede al 30 de septiembre,
+  // lo que sacaba del filtro a todos los folios del dia 1 de cada mes.
   if(!f) return new Date(0);
-  if(f.includes("-")) return new Date(f);
-  const p=f.split("/"); return new Date(p[2]+"-"+p[1]+"-"+p[0]);
+  const t=String(f).trim();
+  if(!t) return new Date(0);
+  let a,m,d;
+  if(t.includes("-")){
+    const p=t.split("T")[0].split("-");
+    a=+p[0]; m=+p[1]; d=+p[2];
+  } else {
+    const p=t.split("/");
+    d=+p[0]; m=+p[1]; a=+p[2];
+  }
+  if(!a||!m||!d) return new Date(0);
+  return new Date(a, m-1, d);
 }
 
 // Para aceptados y rechazados manda la fecha de cierre: un folio de julio
@@ -223,7 +236,9 @@ function render(D){
     html+='<table>'+THEAD+'<tbody>';
     g.forEach(r=>{
       html+='<tr><td>'+r.Fecha+'</td>';
-      if(!simple) html+='<td>'+(r.FechaCierre&&r.FechaCierre.trim()!==""?r.FechaCierre:'<span style="color:var(--text-mut)">mismo día</span>')+'</td>';
+      // Sin fecha de cierre se muestra la de elaboracion, atenuada, porque el
+      // folio se dictamino el mismo dia y es la fecha con la que se contabiliza.
+      if(!simple) html+='<td>'+(r.FechaCierre&&r.FechaCierre.trim()!==""?r.FechaCierre:'<span style="color:var(--text-mut)">'+r.Fecha+'</span>')+'</td>';
       html+='<td>'+r.Folio+'</td><td>'+r.Codigo+'</td><td>'+r.Descripcion+'</td><td>'+r.Lote+'</td><td>'+fmt(r.CantDetenido)+'</td>';
       if(!simple) html+='<td>'+fmt(r.Aceptado)+'</td><td>'+fmt(r.Scrap)+'</td>';
       html+='<td>'+r.Desviacion+'</td><td>'+r.DepDetuvo+'</td>';
@@ -304,6 +319,8 @@ async function exportarExcel(){
   });
 
   const val=(r,cn)=>{
+    // En el Excel la fecha de cierre vacia se llena con la de elaboracion
+    if(cn==="FechaCierre") return (r.FechaCierre&&r.FechaCierre.trim()!=="")?r.FechaCierre:(r.Fecha||"");
     const v=r[cn]||"";
     const n=parseFloat(v);
     return (!isNaN(n)&&["CantDetenido","Aceptado","Scrap"].includes(cn))?n:v;
