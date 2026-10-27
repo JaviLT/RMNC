@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concentrado diario — RMNC</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+:root{
+  --bg:#f8fafc;--card:#ffffff;--text:#1a1a2e;--text-sub:#4a5568;--text-mut:#718096;
+  --border:#dbeafe;--header:#0D18A8;--filterbg:#eff6ff;--filterborder:#bfdbfe;--kpibg:#eff6ff;
+  --zx-accent:#227EF6;
+}
+[data-theme="dark"]{
+  --bg:#0f172a;--card:#1e293b;--text:#e8edf4;--text-sub:#a8b3c4;--text-mut:#7c8aa0;
+  --border:#334155;--header:#0D18A8;--filterbg:#16243d;--filterborder:#1e3a8a;--kpibg:#1e3a8a22;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(--text)}
+.header{background:var(--header);color:white;padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.header h1{font-size:18px;font-weight:500}
+.header-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.back-btn,.theme-toggle{background:rgba(255,255,255,.15);border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit}
+.back-btn:hover,.theme-toggle:hover{background:rgba(255,255,255,.28)}
+.help-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.help-btn:hover{background:rgba(255,255,255,.28)}
+.filters{background:var(--filterbg);border-bottom:1px solid var(--filterborder);padding:12px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:10px;color:var(--header);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+[data-theme="dark"] .fg label{color:#7fb0e8}
+.fg select{font-size:12px;padding:5px 8px;border:1px solid var(--filterborder);border-radius:6px;background:var(--card);color:var(--text);min-width:120px;font-family:inherit}
+.content{padding:20px 24px}
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;margin-bottom:18px}
+.card-title{font-size:15px;font-weight:600;color:var(--header);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+[data-theme="dark"] .card-title{color:#7fb0e8}
+.tabla-wrap{overflow-x:auto}
+table{border-collapse:collapse;font-size:12px;white-space:nowrap}
+th,td{padding:5px 7px;border-bottom:1px solid var(--border);text-align:right}
+thead th{font-size:10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.3px;
+  position:sticky;top:0;background:var(--card);z-index:2;border-bottom:2px solid var(--border)}
+/* La primera columna se queda fija al desplazar a lo ancho */
+th.nombre,td.nombre{text-align:left;position:sticky;left:0;background:var(--card);z-index:1;
+  min-width:190px;max-width:260px;white-space:normal;font-weight:500}
+thead th.nombre{z-index:3}
+tbody tr:hover td{background:var(--kpibg)}
+tbody tr:hover td.nombre{background:var(--kpibg)}
+.vacio{color:var(--border)}
+.col-total{font-weight:600;color:var(--header);background:var(--kpibg)}
+[data-theme="dark"] .col-total{color:#7fb0e8}
+.fila-total td{font-weight:600;background:var(--kpibg);border-top:2px solid var(--border)}
+.sin-datos{padding:30px;text-align:center;color:var(--text-sub);font-size:13px}
+.nota{font-size:11px;color:var(--text-mut);margin-top:8px}
+.help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:16px}
+.help-overlay.open{display:flex}
+.help-modal{background:var(--card);border-radius:12px;padding:22px;width:100%;max-width:620px;max-height:82vh;overflow-y:auto}
+.help-modal h3{font-size:16px;color:var(--header);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+[data-theme="dark"] .help-modal h3{color:#7fb0e8}
+.help-modal p,.help-modal li{font-size:13px;line-height:1.55}
+.help-modal ul{padding-left:18px;margin:6px 0}
+.help-modal li{margin-bottom:5px}
+.help-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub)}
+</style>
+</head>
+<body>
+<div class="header">
+  <img src="Zubex-Logo.png" alt="Zubex Industrial" style="height:40px;filter:brightness(0) invert(1)">
+  <h1>Concentrado diario — RMNC</h1>
+  <div class="header-right">
+    <span id="fecha-upd" style="font-size:12px;opacity:.75">Cargando...</span>
+    <button class="back-btn" onclick="window.location.href='reporte.html'">← Ir al reporte</button>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">Modo oscuro</button>
+    <button class="help-btn" onclick="abrirAyuda()" title="¿Cómo funciona esta pantalla?">?</button>
+  </div>
+</div>
+
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this)cerrarAyuda()">
+  <div class="help-modal">
+    <h3>Concentrado diario <button class="help-close" onclick="cerrarAyuda()">✕</button></h3>
+    <p>Muestra los kilos detenidos día por día del mes elegido, en dos cortes: por operador y por línea.</p>
+    <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:14px 0 6px">Cómo leerlo</h4>
+    <ul>
+      <li>Cada fila es un operador o una línea; cada columna, un día del mes.</li>
+      <li>Las filas se ordenan de mayor a menor según su total, así que lo más relevante queda arriba.</li>
+      <li>Los días sin movimiento aparecen vacíos para que resalten los que sí tuvieron.</li>
+      <li>La primera columna queda fija al desplazarte a lo ancho, y la fila de totales cierra cada tabla.</li>
+    </ul>
+    <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:14px 0 6px">De dónde salen los datos</h4>
+    <ul>
+      <li><b>Por operador:</b> kilos registrados en el detalle de piezas de cada folio. Si un folio tiene varios operadores, cada uno suma su parte.</li>
+      <li><b>Por línea:</b> kilos detenidos del folio, cargados a la línea donde se generó la falla.</li>
+      <li>El día es el de <b>elaboración del folio</b>, sin importar cuándo se haya dictaminado.</li>
+      <li>Se cuentan todos los folios del día, estén detenidos, aceptados o rechazados.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="fg"><label>Año</label><select id="f-anio" onchange="render()"></select></div>
+  <div class="fg"><label>Mes</label>
+    <select id="f-mes" onchange="render()">
+      <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+      <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+      <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+    </select>
+  </div>
+</div>
+
+<div class="content">
+  <div class="card">
+    <div class="card-title">Kilos detenidos por operador</div>
+    <div id="tabla-operador"><p class="sin-datos">Cargando...</p></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Kilos detenidos por línea</div>
+    <div id="tabla-linea"><p class="sin-datos">Cargando...</p></div>
+  </div>
+</div>
+
+<script>
+const JSON_URL="https://raw.githubusercontent.com/JaviLT/RMNC/main/datos.json";
+let D=null;
+
+function fmt(v){
+  if(!v) return "";
+  return v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function diasDelMes(anio,mes){ return new Date(anio, mes, 0).getDate(); }
+
+// Arma una tabla de filas (operador o linea) contra los dias del mes
+function construirTabla(filas, campoNombre, campoKilos, anio, mes){
+  const nDias=diasDelMes(parseInt(anio), parseInt(mes));
+  const mapa={};
+  filas.forEach(r=>{
+    const nombre=(r[campoNombre]||"").trim();
+    const kilos=parseFloat(r[campoKilos])||0;
+    const dia=parseInt(r.Dia);
+    if(!nombre||!kilos||!dia||dia<1||dia>nDias) return;
+    if(!mapa[nombre]) mapa[nombre]=new Array(nDias+1).fill(0);
+    mapa[nombre][dia]+=kilos;
+  });
+
+  const nombres=Object.keys(mapa);
+  if(!nombres.length) return '<p class="sin-datos">Sin movimientos en este mes.</p>';
+
+  // De mayor a menor total, para que lo importante quede arriba
+  const total=n=>mapa[n].reduce((s,v)=>s+v,0);
+  nombres.sort((a,b)=>total(b)-total(a));
+
+  let h='<div class="tabla-wrap"><table><thead><tr><th class="nombre">'+
+        (campoNombre==="Operador"?"Operador":"Línea")+'</th>';
+  for(let d=1;d<=nDias;d++) h+='<th>'+d+'</th>';
+  h+='<th class="col-total">Total</th></tr></thead><tbody>';
+
+  const sumaDia=new Array(nDias+1).fill(0);
+  nombres.forEach(n=>{
+    h+='<tr><td class="nombre">'+n+'</td>';
+    for(let d=1;d<=nDias;d++){
+      const v=mapa[n][d];
+      sumaDia[d]+=v;
+      h+='<td'+(v?'':' class="vacio"')+'>'+(v?fmt(v):'·')+'</td>';
+    }
+    h+='<td class="col-total">'+fmt(total(n))+'</td></tr>';
+  });
+
+  const granTotal=sumaDia.reduce((s,v)=>s+v,0);
+  h+='<tr class="fila-total"><td class="nombre">TOTAL</td>';
+  for(let d=1;d<=nDias;d++) h+='<td>'+(sumaDia[d]?fmt(sumaDia[d]):'')+'</td>';
+  h+='<td class="col-total">'+fmt(granTotal)+'</td></tr>';
+  h+='</tbody></table></div>';
+  h+='<p class="nota">'+nombres.length+' '+(campoNombre==="Operador"?"operador(es)":"línea(s)")+
+     ' · total del mes: '+fmt(granTotal)+' kg</p>';
+  return h;
+}
+
+function render(){
+  if(!D) return;
+  const anio=document.getElementById("f-anio").value;
+  const mes=document.getElementById("f-mes").value;
+
+  const porOperador=(D.datosData||[]).filter(r=>r.Anio===anio&&r.Mes===mes);
+  document.getElementById("tabla-operador").innerHTML=
+    construirTabla(porOperador,"Operador","Kilos",anio,mes);
+
+  const porLinea=(D.base||[]).filter(r=>r.Anio===anio&&r.Mes===mes);
+  document.getElementById("tabla-linea").innerHTML=
+    construirTabla(porLinea,"Linea","CantDetenido",anio,mes);
+}
+
+function abrirAyuda(){ document.getElementById("help-overlay").classList.add("open"); }
+function cerrarAyuda(){ document.getElementById("help-overlay").classList.remove("open"); }
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});
+
+function toggleTheme(){
+  const isDark=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",isDark?"light":"dark");
+  localStorage.setItem("rmnc-theme",isDark?"light":"dark");
+  document.getElementById("theme-btn").textContent=isDark?"Modo oscuro":"Modo claro";
+}
+(function(){if(localStorage.getItem("rmnc-theme")==="dark")document.documentElement.setAttribute("data-theme","dark");})();
+
+window.onload=async function(){
+  if(localStorage.getItem("rmnc-theme")==="dark") document.getElementById("theme-btn").textContent="Modo claro";
+  try{
+    const r=await fetch(JSON_URL+"?t="+Date.now());
+    D=await r.json();
+    document.getElementById("fecha-upd").textContent="Actualizado: "+D.fechaActualizacion;
+
+    // Anios disponibles, del mas reciente al mas viejo
+    const anios=[...new Set((D.base||[]).map(x=>x.Anio).filter(a=>a&&a!=="0"))].sort().reverse();
+    const selA=document.getElementById("f-anio");
+    selA.innerHTML=anios.map(a=>'<option value="'+a+'">'+a+'</option>').join("");
+    if(anios.includes(D.anioActual)) selA.value=D.anioActual;
+    document.getElementById("f-mes").value=D.mesActual;
+
+    render();
+  } catch(e){
+    console.error(e);
+    document.querySelector(".content").innerHTML=
+      '<p class="sin-datos" style="color:#991b1b">Error al cargar datos.json.</p>';
+  }
+};
+</script>
+</body></html>
