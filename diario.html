@@ -33,19 +33,42 @@ body{font-family:'Poppins','Segoe UI',sans-serif;background:var(--bg);color:var(
 .card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;margin-bottom:18px}
 .card-title{font-size:15px;font-weight:600;color:var(--header);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px}
 [data-theme="dark"] .card-title{color:#7fb0e8}
-.tabla-wrap{overflow-x:auto}
-table{border-collapse:collapse;font-size:12px;white-space:nowrap}
-th,td{padding:5px 7px;border-bottom:1px solid var(--border);text-align:right}
-thead th{font-size:10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.3px;
+/* Sin contenedor con scroll propio: asi el encabezado puede fijarse
+   contra la ventana al bajar. Los anchos estan calculados para que los
+   31 dias quepan completos en una laptop sin desplazar a lo ancho. */
+.tabla-wrap{overflow:visible}
+table{border-collapse:collapse;font-size:8px;table-layout:fixed;width:100%}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:right;overflow:hidden}
+thead th{color:var(--text-sub);font-weight:600;
   position:sticky;top:0;background:var(--card);z-index:2;border-bottom:2px solid var(--border)}
-/* La primera columna se queda fija al desplazar a lo ancho */
+thead th .dow{display:block;font-size:7px;opacity:.65;text-transform:uppercase;letter-spacing:.5px}
+thead th .dnum{display:block;font-size:11px;line-height:1.1}
+th.finde,td.finde{background:rgba(13,24,168,.045)}
+[data-theme="dark"] th.finde,[data-theme="dark"] td.finde{background:rgba(127,176,232,.07)}
+/* El nombre se queda fijo si la pantalla obliga a desplazar, y parte en dos lineas */
 th.nombre,td.nombre{text-align:left;position:sticky;left:0;background:var(--card);z-index:1;
-  min-width:190px;max-width:260px;white-space:normal;font-weight:500}
-thead th.nombre{z-index:3}
+  width:125px;white-space:normal;word-break:break-word;line-height:1.2;font-size:9px;font-weight:500;
+  padding-right:6px}
+thead th.nombre{z-index:3;font-size:9px}
+col.dia{width:34px}
+col.total{width:68px}
+/* En pantallas angostas se aprieta un poco mas antes de permitir desplazamiento */
+@media (max-width:1330px){
+  .content{padding:20px 12px}
+  .card{padding:16px 10px}
+  table{font-size:7.5px}
+  th,td{padding:3px 1px}
+  col.dia{width:31px}
+  col.total{width:60px}
+  th.nombre,td.nombre{width:110px;font-size:8px}
+}
+@media (max-width:1100px){
+  .tabla-wrap{overflow-x:auto}
+}
 tbody tr:hover td{background:var(--kpibg)}
 tbody tr:hover td.nombre{background:var(--kpibg)}
 .vacio{color:var(--border)}
-.col-total{font-weight:600;color:var(--header);background:var(--kpibg)}
+.col-total{font-weight:600;color:var(--header);background:var(--kpibg);font-size:9px}
 [data-theme="dark"] .col-total{color:#7fb0e8}
 .fila-total td{font-weight:600;background:var(--kpibg);border-top:2px solid var(--border)}
 .sin-datos{padding:30px;text-align:center;color:var(--text-sub);font-size:13px}
@@ -82,7 +105,9 @@ tbody tr:hover td.nombre{background:var(--kpibg)}
       <li>Cada fila es un operador o una línea; cada columna, un día del mes.</li>
       <li>Las filas se ordenan de mayor a menor según su total, así que lo más relevante queda arriba.</li>
       <li>Los días sin movimiento aparecen vacíos para que resalten los que sí tuvieron.</li>
-      <li>La primera columna queda fija al desplazarte a lo ancho, y la fila de totales cierra cada tabla.</li>
+      <li>Sobre cada número va la inicial del día de la semana, y los fines de semana llevan un sombreado suave.</li>
+      <li>La fila de días se mantiene visible al bajar, y la fila de totales cierra cada tabla.</li>
+      <li>El filtro de departamento acota las dos tablas a la vez.</li>
     </ul>
     <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sub);margin:14px 0 6px">De dónde salen los datos</h4>
     <ul>
@@ -104,6 +129,9 @@ tbody tr:hover td.nombre{background:var(--kpibg)}
       <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
     </select>
   </div>
+  <div class="fg"><label>Departamento</label>
+    <select id="f-dep" onchange="render()" style="min-width:170px"><option value="">Todos</option></select>
+  </div>
 </div>
 
 <div class="content">
@@ -124,6 +152,11 @@ let D=null;
 function fmt(v){
   if(!v) return "";
   return v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// En las celdas diarias se omite el separador de miles para ganar ancho
+function fmtDia(v){
+  if(!v) return "";
+  return v.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});
 }
 
 function diasDelMes(anio,mes){ return new Date(anio, mes, 0).getDate(); }
@@ -148,9 +181,20 @@ function construirTabla(filas, campoNombre, campoKilos, anio, mes){
   const total=n=>mapa[n].reduce((s,v)=>s+v,0);
   nombres.sort((a,b)=>total(b)-total(a));
 
-  let h='<div class="tabla-wrap"><table><thead><tr><th class="nombre">'+
-        (campoNombre==="Operador"?"Operador":"Línea")+'</th>';
-  for(let d=1;d<=nDias;d++) h+='<th>'+d+'</th>';
+  // Inicial del dia de la semana sobre el numero, para ubicar la fecha de un vistazo
+  const DOW=["D","L","M","M","J","V","S"];
+  const esFinde=d=>{const x=new Date(parseInt(anio),parseInt(mes)-1,d).getDay(); return x===0||x===6;};
+  const dow=d=>DOW[new Date(parseInt(anio),parseInt(mes)-1,d).getDay()];
+
+  let h='<div class="tabla-wrap"><table>';
+  h+='<colgroup><col class="nom">';
+  for(let d=1;d<=nDias;d++) h+='<col class="dia">';
+  h+='<col class="total"></colgroup>';
+  h+='<thead><tr><th class="nombre">'+(campoNombre==="Operador"?"Operador":"Línea")+'</th>';
+  for(let d=1;d<=nDias;d++){
+    h+='<th'+(esFinde(d)?' class="finde"':'')+'><span class="dow">'+dow(d)+
+       '</span><span class="dnum">'+d+'</span></th>';
+  }
   h+='<th class="col-total">Total</th></tr></thead><tbody>';
 
   const sumaDia=new Array(nDias+1).fill(0);
@@ -159,14 +203,15 @@ function construirTabla(filas, campoNombre, campoKilos, anio, mes){
     for(let d=1;d<=nDias;d++){
       const v=mapa[n][d];
       sumaDia[d]+=v;
-      h+='<td'+(v?'':' class="vacio"')+'>'+(v?fmt(v):'·')+'</td>';
+      const cls=(v?'':'vacio')+(esFinde(d)?' finde':'');
+      h+='<td'+(cls.trim()?' class="'+cls.trim()+'"':'')+'>'+(v?fmtDia(v):'·')+'</td>';
     }
     h+='<td class="col-total">'+fmt(total(n))+'</td></tr>';
   });
 
   const granTotal=sumaDia.reduce((s,v)=>s+v,0);
   h+='<tr class="fila-total"><td class="nombre">TOTAL</td>';
-  for(let d=1;d<=nDias;d++) h+='<td>'+(sumaDia[d]?fmt(sumaDia[d]):'')+'</td>';
+  for(let d=1;d<=nDias;d++) h+='<td'+(esFinde(d)?' class="finde"':'')+'>'+(sumaDia[d]?fmtDia(sumaDia[d]):'')+'</td>';
   h+='<td class="col-total">'+fmt(granTotal)+'</td></tr>';
   h+='</tbody></table></div>';
   h+='<p class="nota">'+nombres.length+' '+(campoNombre==="Operador"?"operador(es)":"línea(s)")+
@@ -178,14 +223,14 @@ function render(){
   if(!D) return;
   const anio=document.getElementById("f-anio").value;
   const mes=document.getElementById("f-mes").value;
+  const dep=document.getElementById("f-dep").value;
+  const pasa=r=>r.Anio===anio&&r.Mes===mes&&(!dep||r.DepResponsable===dep);
 
-  const porOperador=(D.datosData||[]).filter(r=>r.Anio===anio&&r.Mes===mes);
   document.getElementById("tabla-operador").innerHTML=
-    construirTabla(porOperador,"Operador","Kilos",anio,mes);
+    construirTabla((D.datosData||[]).filter(pasa),"Operador","Kilos",anio,mes);
 
-  const porLinea=(D.base||[]).filter(r=>r.Anio===anio&&r.Mes===mes);
   document.getElementById("tabla-linea").innerHTML=
-    construirTabla(porLinea,"Linea","CantDetenido",anio,mes);
+    construirTabla((D.base||[]).filter(pasa),"Linea","CantDetenido",anio,mes);
 }
 
 function abrirAyuda(){ document.getElementById("help-overlay").classList.add("open"); }
@@ -213,6 +258,10 @@ window.onload=async function(){
     selA.innerHTML=anios.map(a=>'<option value="'+a+'">'+a+'</option>').join("");
     if(anios.includes(D.anioActual)) selA.value=D.anioActual;
     document.getElementById("f-mes").value=D.mesActual;
+
+    const deps=[...new Set((D.base||[]).map(x=>x.DepResponsable).filter(Boolean))].sort();
+    document.getElementById("f-dep").innerHTML=
+      '<option value="">Todos</option>'+deps.map(d=>'<option value="'+d+'">'+d+'</option>').join("");
 
     render();
   } catch(e){
